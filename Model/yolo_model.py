@@ -19,26 +19,6 @@ from numpy import savetxt
 from ultralytics.yolo.utils.ops import scale_image
 import imageio
 
-# Useful Resources
-# Yolo Docs
-# https://www.youtube.com/watch?v=m9fH9OWn8YM&ab_channel=Computervisionengineer
-# https://docs.ultralytics.com/yolov5/train_custom_data/?h=#13-organize-directories
-
-def generate_yaml_file():
-    # YAML files are like configuration files for your dataset
-    # They contain information about the dataset, like its location
-    # and more importantly, the various classes and labels in the dataset
-    # Yolo can generate the YAML file for you, if you tell it where the data is
-    pass
-
-
-def create_new_model(name = 'yolov8n.yaml', task = "segment"):
-    # Create a new YOLO model from scratch (if you don't want to use the Yolo pretrained Models)
-    # default task is "detect". 
-    model = YOLO(name, task)    # contains the hyper-parameters, class labels, etc.
-    return model
-
-
 def load_pretrained_model(model_name, task = "segment"):
     # Load a pretrained YOLO model  e.g. yolov8n.pt or your own model
     # You can pass in either a .yaml or .pt file into the YOLO constructor
@@ -89,7 +69,7 @@ def get_labels_per_frame(results, unique=False):
     else:
         for result in results:
             labels.append([(num, all_labels[num]) for num in result.boxes.cls.tolist()])
-    return labels
+    return sorted(labels, key=lambda x: x[0])
 
 
 def get_labels_per_video(results):
@@ -101,10 +81,10 @@ def get_labels_per_video(results):
     """
     labels = get_labels_per_frame(results)
     labels = list(set((chain.from_iterable(labels))))
-    return labels
+    return sorted(labels, key=lambda x: x[0])
 
 
-def get_image_from_mask(result, classes='all', save=True):
+def get_object_from_image(result, classes='all', save=True, mask=False, background_path=None):
     """
     This function isolates an object(s) from the background using its masks in a frame.
 
@@ -115,6 +95,7 @@ def get_image_from_mask(result, classes='all', save=True):
     returns:
         A numpy image array
     """
+
     background = result.orig_img
     mask_image = np.zeros((background.shape[0], background.shape[1]), dtype=np.uint8)
     
@@ -129,15 +110,70 @@ def get_image_from_mask(result, classes='all', save=True):
                 cv2.fillPoly(mask_image, [mask], (255, 255, 255))
 
         # Apply the mask containing all our required classes to the background image to extract the segmented region
-        segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
+        segmented_region = cv2.cvtColor(cv2.bitwise_and(background, background, mask=mask_image), cv2.COLOR_BGR2RGB)
+        
+        if background_path:
+             new_background = np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
+             mask = np.all(segmented_region == [0, 0, 0], axis=-1)
+             segmented_region[mask] = new_background[mask]
         image = Image.fromarray(segmented_region)
         if save:
             image.save(f'output.png')
         return np.array(image)
+    if background_path:
+        return np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
     return np.zeros_like(background)
 
 
-def get_video_from_mask(results, path="output.mp4", classes="all"):
+def get_colormap():
+    return [
+    (128, 0, 0), # red
+    (0, 128, 0), # green
+    (128, 128, 0), # yellow
+    (0, 0, 128), # blue
+    (128, 0, 128), # purple
+    (0, 128, 128), # cyan
+    (128, 128, 128), # silver
+    (64, 0, 0) # brown
+  ]
+
+
+def get_object_mask_from_image(result, classes='all', color_dict=None, save=True, background_path=None):
+    """
+    This function isolates an object(s)'s masks from the background using its masks in a frame.
+
+    params:
+        result: The result for a single frame
+        classes: A list which defines which classes should be included in the output image. 
+        save: Boolean value which defines whether to save image to the disk
+    returns:
+        A numpy image array
+    """
+    if classes == 'all':
+        classes = result.boxes.cls.tolist()
+
+    if color_dict == None:
+        colors = get_colormap()
+        color_dict = {classes[i]: colors[i % len(colors)] for i in range(len(classes))}
+    
+    background = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1], 3), dtype=np.uint8)
+    image = Image.fromarray(background)
+    draw = ImageDraw.Draw(image)
+    mask_image = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1]), dtype=np.uint8)
+
+    if result.masks != None:  # If no masks are found, return a black image
+        for index, mask in enumerate(result.masks.xy):
+            class_id = result.boxes.cls.tolist()[index]
+            if class_id not in classes: continue
+
+            draw.polygon(mask, outline="white", fill=color_dict[class_id])
+        if save:
+            image.save(f'output.png')   # <--------
+        return np.array(image)
+    return np.zeros_like(background)
+
+
+def get_object_from_video(results, path="output.mp4", classes="all", mask=False, background=None):
     """
     This function creates a video which isolates all the required classes, 
     and removes the background and other irrelvant classes.
@@ -151,27 +187,50 @@ def get_video_from_mask(results, path="output.mp4", classes="all"):
     """
     frames = []
 
-    for index, result in enumerate(results):
-        frame = get_image_from_mask(result, classes=classes)
-        frames.append(frame)
-    imageio.mimsave(path, frames, fps=30, quality=8, codec='h264')
+    if mask == False:
+        for index, result in enumerate(results):
+            frame = get_object_from_image(result, classes=classes, save=False, background_path=background)
+            frames.append(frame)
+    else:
+        colors = get_colormap()
+        classes = [x[0] for x in get_labels_per_video(results)]
+        colors = {classes[i]: colors[i % len(colors)] for i in range(len(classes))}
+        for index, result in enumerate(results):
+            frame = get_object_mask_from_image(result, classes=classes, color_dict=colors, save=False, background_path=background)
+            frames.append(frame)        
+    imageio.mimsave(path, frames, fps=24, quality=8, codec='h264')  # <---- to be removed
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+##### HOW TO USE YOLO
+
+#### (1) Creating a new model
+# model = create_new_model("yolov8s-seg.pt", "segment")
+# train_model(model)
+#detection_output = model.predict(source="input.mp4", save = True, conf=0.3) 
 
 
-#### Creating a new model
-model = create_new_model("yolov8n-seg.pt", "segment")
-train_model(model)
-detection_output = model.predict(source="dance.mp4", conf=0.4) 
+#### (2) Loading an existing model for predicting
+model = load_pretrained_model('/content/drive/MyDrive/Projects/SEM 6/DLP/project/models/YOLOv8s-DAVIS-f/450/best.pt', "segment")
+detection_output = model.predict(source="/content/drive/MyDrive/Projects/SEM 6/DLP/project/videos/input10.mp4", conf=0.3, save=True) 
 
 
-#### Loading an existing model for predicting
-# model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")
-# detection_output = model.predict(source="dance.mp4", conf=0.3, save=True) 
-
-
-### Loading an existing model for further training
+### (3) Loading an existing model for further training
 # model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")
 # train_model(model)
 # detection_output = model.predict(source="dance.mp4", conf=0.3, save=True) 
+
+
+
+### Important Parameters for Prediction
+# conf           	0.25	    object confidence threshold for detection
+# iou	            0.7
+# save	            False
+# hide_labels	    False	    hide labels
+# hide_conf	        False	    hide confidence scores
+# classes	        None	    filter results by class, i.e. class=0, or class=[0,2,3]
+# boxes	            True	    Show boxes in segmentation predictions
 
 
 
@@ -185,5 +244,21 @@ detection_output = model.predict(source="dance.mp4", conf=0.4)
 # results = model('https://ultralytics.com/images/bus.jpg')
 # detection_output = model.predict(source="https://ultralytics.com/images/bus.jpg", conf=0.25, save=True)
 
+get_object_from_video(detection_output, mask=False)
+
+get_object_mask_from_image(detection_output[70])
+
+def make_video_from_frames(output_folder, file_name, sorted_frames_paths, fps = 30):
+  if not os.path.exists(output_folder):
+    raise FileNotFoundError("Path {} does not exist".format(output_folder))
+  output_path = os.path.join(output_folder, file_name)
+  frames = [imageio.imread(f) for f in sorted_frames_paths]
+  imageio.mimsave(output_path, frames, fps=30, quality=8, codec='h264')
+  if not os.path.exists(output_path):
+    raise FileNotFoundError(f"Could not create file {output_path}")
+  return output_path
 
 
+frames = os.listdir(label_folder_path)
+frames.sort(key = lambda x : int(x[:-4]))
+sorted_frame_paths = list(map(lambda x: os.path.join(label_folder_path, x), frames))
