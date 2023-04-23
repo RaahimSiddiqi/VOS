@@ -26,7 +26,7 @@ function Editor() {
     }
   }
   return (
-    <Grid container spacing={2}>
+    <Grid container spacing={2} marginTop={0} marginLeft={0} width="100%">
       <Grid container spacing={2} item xs = {12} md={5}>
         <Grid item xs = {12} style = {{borderColor: 'gray', borderWidth: 1, borderStyle: "solid"}}>
           <FileManager config={config} files={files} setfiles={setfiles}/>
