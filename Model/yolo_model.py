@@ -7,12 +7,9 @@ Original file is located at
     https://colab.research.google.com/drive/1pfiMqzeuMPrNsKtA-YbqYLh-Pqhu3bp_
 """
 
-!pip install ultralytics
-
 from ultralytics import YOLO
 from itertools import chain 
 import cv2
-from google.colab.patches import cv2_imshow
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 from numpy import savetxt
@@ -95,6 +92,8 @@ def get_object_from_image(result, classes='all', save=True, mask=False, backgrou
     returns:
         A numpy image array
     """
+    if len(result) == 1:
+        result = result[0]
 
     background = result.orig_img
     mask_image = np.zeros((background.shape[0], background.shape[1]), dtype=np.uint8)
@@ -149,6 +148,8 @@ def get_object_mask_from_image(result, classes='all', color_dict=None, save=True
     returns:
         A numpy image array
     """
+    if len(result) == 1:
+        result = result[0]
     if classes == 'all':
         classes = result.boxes.cls.tolist()
 
@@ -200,8 +201,7 @@ def get_object_from_video(results, path="output.mp4", classes="all", mask=False,
             frames.append(frame)        
     imageio.mimsave(path, frames, fps=24, quality=8, codec='h264')  # <---- to be removed
 
-from google.colab import drive
-drive.mount('/content/drive')
+
 
 ##### HOW TO USE YOLO
 
@@ -212,9 +212,9 @@ drive.mount('/content/drive')
 
 
 #### (2) Loading an existing model for predicting
-model = load_pretrained_model('/content/drive/MyDrive/Projects/SEM 6/DLP/project/models/YOLOv8s-DAVIS-f/450/best.pt', "segment")
-detection_output = model.predict(source="/content/drive/MyDrive/Projects/SEM 6/DLP/project/videos/input10.mp4", conf=0.3, save=True) 
-
+model = load_pretrained_model('C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt', "segment")
+detection_output = model.predict(source="C://Users//RaahimSiddiqi//Desktop//p1.png", conf=0.3, save=True) 
+get_object_from_image(detection_output, classes=[5], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.jpg")
 
 ### (3) Loading an existing model for further training
 # model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")
@@ -243,22 +243,3 @@ detection_output = model.predict(source="/content/drive/MyDrive/Projects/SEM 6/D
 # You can directly use the model class, and also pull images from URLs automatically.
 # results = model('https://ultralytics.com/images/bus.jpg')
 # detection_output = model.predict(source="https://ultralytics.com/images/bus.jpg", conf=0.25, save=True)
-
-get_object_from_video(detection_output, mask=False)
-
-get_object_mask_from_image(detection_output[70])
-
-def make_video_from_frames(output_folder, file_name, sorted_frames_paths, fps = 30):
-  if not os.path.exists(output_folder):
-    raise FileNotFoundError("Path {} does not exist".format(output_folder))
-  output_path = os.path.join(output_folder, file_name)
-  frames = [imageio.imread(f) for f in sorted_frames_paths]
-  imageio.mimsave(output_path, frames, fps=30, quality=8, codec='h264')
-  if not os.path.exists(output_path):
-    raise FileNotFoundError(f"Could not create file {output_path}")
-  return output_path
-
-
-frames = os.listdir(label_folder_path)
-frames.sort(key = lambda x : int(x[:-4]))
-sorted_frame_paths = list(map(lambda x: os.path.join(label_folder_path, x), frames))
