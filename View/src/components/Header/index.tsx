@@ -1,12 +1,34 @@
 import {AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { Auth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../../firebase-config';
 
 const Header = () => {
+    const navigate = useNavigate();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        onAuthStateChanged(auth, async (user) => {
+            setIsAuthenticated(!!user);
+        });
+    }, [])
+
+    const SignOut = (auth: Auth) => {
+        signOut(auth);
+        navigate("/");
+    }
+
     return ( 
         <AppBar position='static' sx={{m: 0, bgcolor:'#0093AB'}}>
             <Toolbar>       
                 <Typography variant="h5" component='div' sx={{flexGrow:1}}>Seer</Typography>
-                <Button variant="outlined" color="inherit" >Login</Button>
-            </Toolbar>
+                {isAuthenticated ?
+                <Button variant="outlined" color="inherit" onClick={() => SignOut(auth)}>Logout</Button>
+                :
+                <Button variant="outlined" color="inherit" onClick={() => navigate("/login")}>Login</Button>
+                }
+                </Toolbar>
         </AppBar>
      );
 }

@@ -3,6 +3,7 @@ import { Component } from "react";
 import Header from '../Header';
 import Editor from '../Editor';
 import Home from '../Home';
+import Login from '../Login';
 
 const Main = () => {
     return ( 
@@ -10,6 +11,7 @@ const Main = () => {
             <Header/>
             <Routes>
                 <Route path='/' element={<Home />}/>
+                <Route path='/login' element={<Login />}/>
                 <Route path='/editor' element={<Editor />}  />
                 <Route path= "*" element={<Navigate to ="/" />}/>
             </Routes>
