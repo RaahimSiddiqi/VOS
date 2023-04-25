@@ -66,13 +66,14 @@ const FileManager: React.FC<FileManagerProps> = ({ files, setfiles, config }) =>
             <Grid container>
               {files.map((file, fileIndex) => (
                 <Grid item key={fileIndex}>
+
                   <Tooltip title={file.name}>
                     <IconButton
                       onClick={() => console.log(file)}
                       onContextMenu={(event: React.MouseEvent) => handleContextMenu(event, fileIndex)}
                       rel="noopener noreferrer"
                       size="large"
-                      sx={{ display: 'flex', flexDirection: 'column' }}
+                      sx={{ display: 'flex', flexDirection: 'column'}}
                     >
                       <InsertDriveFileIcon sx={{ fontSize: 60 }} />
                       <Typography
@@ -80,7 +81,7 @@ const FileManager: React.FC<FileManagerProps> = ({ files, setfiles, config }) =>
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          maxWidth: '100%',
+                          width: '80px',
                           textAlign: 'center',
                           fontSize: '0.8rem',
                         }}
