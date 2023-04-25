@@ -9,16 +9,18 @@ const Home = () => {
         <Grid container paddingTop={2}>
             <Grid container >
                 <Grid item xs={12} md={6} style={{ display: "flex", flexDirection:"column", justifyContent: "flex-end" }}>
-                    <Box sx={{margin:"auto"}}>
+                    <Box textAlign='center' sx={{margin:"auto"}}>
                         <Typography m = {0} align="center" fontSize={32}>Unleash the power of visual intelligence with Seer</Typography>
                         <Typography align="center" fontSize={26}>The Ultimate VOS Application</Typography>
-                    </Box>
-                    <Box sx={{marginBottom:"auto", marginRight:"auto", marginLeft:"auto"}}>
-                        <Button variant="contained" onClick={() => navigate("/editor")}>Try Now!</Button>
+                        <Box sx={{p: 1}}>
+                            <Button variant="contained" onClick={() => navigate("/editor")}>Try Now!</Button>
+                        </Box>
                     </Box>
                 </Grid>   
                 <Grid item xs={12} md={6}>
-                    <img src={bus_pipeline_graphic}></img>
+                    <Box>
+                        <img src={bus_pipeline_graphic}></img>
+                    </Box>
                 </Grid>   
             </Grid>
         </Grid>
