@@ -5,7 +5,8 @@ import { Box, Typography, Grid, Paper, Avatar, TextField, Button } from '@mui/ma
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import * as yup from "yup";
 import { auth } from '../../firebase-config';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import GoogleButton from 'react-google-button';
 
 const validationSchema = yup.object({
     firstName: yup.string()
@@ -75,6 +76,12 @@ const Login = (props) => {
                 navigate("/");
             }
         })
+    }
+
+    const GoogleSignIn = () => {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider);
+        navigate("/")
     }
 
     
@@ -192,11 +199,17 @@ const Login = (props) => {
                             {isRegister ? "Sign Up" : "Sign In"}
                         </Button>
 
-                        <Typography variant='subtitle1' sx={{marginTop: 1}}>
-                            {isRegister ? "Already have an account?" : "Don't have an account?"} <br></br>
-                            <Button variant="text" onClick={() => {setIsRegister(!isRegister)}}>{isRegister ? "Sign In" : "Create One"}</Button>
-                        </Typography>
+                        <Box>
+                            <Typography variant='subtitle1' sx={{marginTop: 1}}>
+                                {isRegister ? "Already have an account?" : "Don't have an account?"} <br></br>
+                                <Button variant="text" onClick={() => {setIsRegister(!isRegister)}}>{isRegister ? "Sign In" : "Create One"}</Button>
+                            </Typography>
+                        </Box>
             </Paper>
+            <Box textAlign="center" m="auto" maxWidth={240}>
+                <Typography>Or</Typography>
+                <GoogleButton onClick={() => GoogleSignIn()}></GoogleButton>
+            </Box>
         </Grid>
      );
 }
