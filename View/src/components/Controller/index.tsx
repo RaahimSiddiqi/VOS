@@ -1,25 +1,26 @@
 import React from 'react';
 import { Slider, Button, FormControl, InputLabel, Select, MenuItem, Typography, Grid, Box } from '@mui/material';
-import { useDropzone } from 'react-dropzone'
+import Dropzone, { DropzoneRef, useDropzone } from 'react-dropzone'
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import ImageIcon from '@mui/icons-material/Image';
-import { useMediaUpload } from '../../components';
+import { MediaFilePreview, useMediaUpload } from '../../components';
+import { RgbaStringColorPicker  } from "react-colorful";
+
 interface ControllerProps {
   activeFile: File | undefined;
   onSubmit: (file: File) => any;
 }
-
 
 const Controller: React.FC<ControllerProps> = ({ activeFile, onSubmit }) => {
   const [model, setModel] = React.useState('YOLOv8');
   const [imageSize, setImageSize] = React.useState(640);
   const [confidence, setConfidence] = React.useState(0.5);
   const [iou, setiou] = React.useState(0.5);
-  const background = useMediaUpload({
-    uploadIcon: <ImageIcon />,
-  });
+  const [bgFile, setbgFile] = React.useState<File>();
+  const [bgColor, setbgColor] = React.useState("rgba(0, 0, 0, 1)");
+  
   const handleSegmentClick = async () => {
-    const params = { model, imageSize, confidence, iou, backgroundFile : background.file };
+    const params = { model, imageSize, confidence, iou};
     //make request to server with params. server returns a file object
     const output_file = new File(["Meow Meow"], "Meow.txt") //sample file
     onSubmit(output_file);
@@ -76,14 +77,33 @@ const Controller: React.FC<ControllerProps> = ({ activeFile, onSubmit }) => {
         <ul>
           <li>
             <Typography variant='body1' gutterBottom>Upload an image.</Typography>
-            <background.Dropzone style = {{ width : 200, height : 100, border : 'dashed gray 1px', borderRadius : '6%'}}/>
+            <Dropzone accept={{
+              "image/png": [".png"],
+              "image/jpeg": [".jpg", ".jpeg"],
+              "image/jpg": [".jpg", ".jpeg"],
+              }} 
+              onDrop = {acceptedFiles => acceptedFiles && setbgFile(acceptedFiles[0])}>
+              
+              {({getRootProps, getInputProps}) => (
+                <div {...getRootProps({style : {padding: 10, width : 200, height : 100, border : 'dashed gray 1px', borderRadius : '6%', display : 'flex', justifyContent : 'center', alignItems : 'center'}})}>
+                  <input {...getInputProps()}/>
+                  {!bgFile ? 
+                    <ImageIcon/>
+                    :
+                    <MediaFilePreview file={bgFile}/>
+                  }
+                </div>
+              ) 
+              }
+            </Dropzone>
+            {/* <background.Dropzone style = {{ width : 200, height : 100, border : 'dashed gray 1px', borderRadius : '6%'}}/> */}
           </li>
           <li>
             <Typography variant='body1' gutterBottom>Choose a color</Typography>
+            <RgbaStringColorPicker color={bgColor} onChange={setbgColor} />
           </li>
         </ul>
       </Box>
-      <button onClick={background.open}>Click</button>
     </form>
   );
 };
