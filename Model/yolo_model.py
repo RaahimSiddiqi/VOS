@@ -15,6 +15,7 @@ import numpy as np
 from numpy import savetxt
 from ultralytics.yolo.utils.ops import scale_image
 import imageio
+import json
 
 def load_pretrained_model(model_name, task = "segment"):
     # Load a pretrained YOLO model  e.g. yolov8n.pt or your own model
@@ -81,7 +82,7 @@ def get_labels_per_video(results):
     return sorted(labels, key=lambda x: x[0])
 
 
-def get_object_from_image(result, classes='all', save=True, mask=False, background_path=None):
+def get_object_from_image(result, classes='all', save=True, mask=False, background_path=None, alpha=True):
     """
     This function isolates an object(s) from the background using its masks in a frame.
 
@@ -89,13 +90,17 @@ def get_object_from_image(result, classes='all', save=True, mask=False, backgrou
         result: The result for a single frame
         classes: A list which defines which classes should be included in the output image. 
         save: Boolean value which defines whether to save image to the disk
+        background_path: Filepath of the background image which will replace the old background
+        alpha: Decides whether the new background will be black or transparent.
     returns:
         A numpy image array
     """
-    if len(result) == 1:
+    if len(result) == 1:  # For handling images (single results)
         result = result[0]
 
     background = result.orig_img
+    if alpha:
+        background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
     mask_image = np.zeros((background.shape[0], background.shape[1]), dtype=np.uint8)
     
     if result.masks != None:  # If no masks are found, return a black image
@@ -109,15 +114,23 @@ def get_object_from_image(result, classes='all', save=True, mask=False, backgrou
                 cv2.fillPoly(mask_image, [mask], (255, 255, 255))
 
         # Apply the mask containing all our required classes to the background image to extract the segmented region
-        segmented_region = cv2.cvtColor(cv2.bitwise_and(background, background, mask=mask_image), cv2.COLOR_BGR2RGB)
+        if alpha:
+            segmented_region = cv2.cvtColor(cv2.bitwise_and(background, background, mask=mask_image), cv2.COLOR_BGR2RGBA)
+        else:
+            segmented_region = cv2.cvtColor(cv2.bitwise_and(background, background, mask=mask_image), cv2.COLOR_BGR2RGB)
         
         if background_path:
-             new_background = np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
-             mask = np.all(segmented_region == [0, 0, 0], axis=-1)
-             segmented_region[mask] = new_background[mask]
+            new_background = np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
+            if new_background.shape[2] == 4 and not alpha: # convert new_background RBG format if the output image must be RGB
+                new_background = cv2.cvtColor(new_background, cv2.COLOR_RGBA2RGB)
+                mask = np.all(segmented_region == [0, 0, 0], axis=-1)
+            else:
+                mask = np.all(segmented_region == [0, 0, 0, 0], axis=-1)
+            segmented_region[mask] = new_background[mask]
+
         image = Image.fromarray(segmented_region)
         if save:
-            image.save(f'output.png')
+            image.save(f'output2.png')
         return np.array(image)
     if background_path:
         return np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
@@ -145,6 +158,7 @@ def get_object_mask_from_image(result, classes='all', color_dict=None, save=True
         result: The result for a single frame
         classes: A list which defines which classes should be included in the output image. 
         save: Boolean value which defines whether to save image to the disk
+        background_path: Filepath of the background image which will replace the old background
     returns:
         A numpy image array
     """
@@ -156,8 +170,8 @@ def get_object_mask_from_image(result, classes='all', color_dict=None, save=True
     if color_dict == None:
         colors = get_colormap()
         color_dict = {classes[i]: colors[i % len(colors)] for i in range(len(classes))}
-    
-    background = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1], 3), dtype=np.uint8)
+
+    background = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1], result.orig_img.shape[2]), dtype=np.uint8)
     image = Image.fromarray(background)
     draw = ImageDraw.Draw(image)
     mask_image = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1]), dtype=np.uint8)
@@ -169,12 +183,12 @@ def get_object_mask_from_image(result, classes='all', color_dict=None, save=True
 
             draw.polygon(mask, outline="white", fill=color_dict[class_id])
         if save:
-            image.save(f'output.png')   # <--------
+            image.save(f'output.png')   
         return np.array(image)
     return np.zeros_like(background)
 
 
-def get_object_from_video(results, path="output.mp4", classes="all", mask=False, background=None):
+def get_object_from_video(results, path="output.mp4", classes="all", mask=False, background_path=None):
     """
     This function creates a video which isolates all the required classes, 
     and removes the background and other irrelvant classes.
@@ -183,6 +197,7 @@ def get_object_from_video(results, path="output.mp4", classes="all", mask=False,
         results: The list of results (output from the model prediction)
         path: Name or file path of the output video
         classes: list of classes to isolate and extract. By default, all classes are extracted.
+        background_path: Filepath of the background image which will replace the old background
     returns:
         None
     """
@@ -190,16 +205,44 @@ def get_object_from_video(results, path="output.mp4", classes="all", mask=False,
 
     if mask == False:
         for index, result in enumerate(results):
-            frame = get_object_from_image(result, classes=classes, save=False, background_path=background)
+            frame = get_object_from_image(result, classes=classes, save=False, background_path=background_path)
             frames.append(frame)
     else:
         colors = get_colormap()
         classes = [x[0] for x in get_labels_per_video(results)]
         colors = {classes[i]: colors[i % len(colors)] for i in range(len(classes))}
         for index, result in enumerate(results):
-            frame = get_object_mask_from_image(result, classes=classes, color_dict=colors, save=False, background_path=background)
+            frame = get_object_mask_from_image(result, classes=classes, color_dict=colors, save=False, background_path=background_path)
             frames.append(frame)        
-    imageio.mimsave(path, frames, fps=24, quality=8, codec='h264')  # <---- to be removed
+    imageio.mimsave(path, frames, fps=24, quality=8, codec='h264')  
+
+
+def results_to_json(results):
+    boxes = {}
+    masks = {}
+    scores = {}
+    labels = {}
+
+    for index, result in enumerate(results):
+        boxes[index] = result.boxes.xywh.tolist()
+        masks[index] = result.masks.xy
+        scores[index] = result.boxes.conf.tolist()
+        labels[index] = result.boxes.cls.tolist()
+
+    json_results = {
+        "boxes": boxes,
+        "masks": masks,
+        "scores": scores,
+        "labels": labels,
+    }
+    return json.dumps(json_results, cls=NumpyEncoder)
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
 
 
 
@@ -213,8 +256,9 @@ def get_object_from_video(results, path="output.mp4", classes="all", mask=False,
 
 #### (2) Loading an existing model for predicting
 model = load_pretrained_model('C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt', "segment")
-detection_output = model.predict(source="C://Users//RaahimSiddiqi//Desktop//p1.png", conf=0.3, save=True) 
-get_object_from_image(detection_output, classes=[5], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.jpg")
+detection_output = model.predict(source="C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input1.mp4", conf=0.3) 
+get_object_from_video(detection_output)
+
 
 ### (3) Loading an existing model for further training
 # model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")
