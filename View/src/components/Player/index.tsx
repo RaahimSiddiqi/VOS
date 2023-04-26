@@ -5,7 +5,7 @@ interface PlayerProps {
     activeFile: File | undefined;
 }
 const Player: React.FC<PlayerProps> = ({ activeFile }) => {
-    const style: React.CSSProperties = { objectFit: 'contain', width : '100%',  minHeight : 400, maxHeight : 650 };
+    const style: React.CSSProperties = { objectFit: 'contain', maxWidth : '100%', maxHeight : '100%', marginTop : 'auto', marginBottom : 'auto' };
     if (!activeFile) return <Typography style={style}>Select a video or an image to display</Typography>;
     else {
         const type = activeFile.type.split('/')[0];
