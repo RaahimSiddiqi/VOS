@@ -15,6 +15,7 @@ import numpy as np
 from numpy import savetxt
 from ultralytics.yolo.utils.ops import scale_image
 import imageio
+import json
 
 def load_pretrained_model(model_name, task = "segment"):
     # Load a pretrained YOLO model  e.g. yolov8n.pt or your own model
@@ -113,8 +114,11 @@ def get_object_from_image(result, classes='all', save=True, mask=False, backgrou
         
         if background_path:
              new_background = np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
+             if new_background.shape[2] == 4: # convert to RBG format if it is RGBA
+                 new_background = cv2.cvtColor(new_background, cv2.COLOR_RGBA2RGB)
              mask = np.all(segmented_region == [0, 0, 0], axis=-1)
              segmented_region[mask] = new_background[mask]
+
         image = Image.fromarray(segmented_region)
         if save:
             image.save(f'output.png')
@@ -156,8 +160,8 @@ def get_object_mask_from_image(result, classes='all', color_dict=None, save=True
     if color_dict == None:
         colors = get_colormap()
         color_dict = {classes[i]: colors[i % len(colors)] for i in range(len(classes))}
-    
-    background = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1], 3), dtype=np.uint8)
+
+    background = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1], result.orig_img.shape[2]), dtype=np.uint8)
     image = Image.fromarray(background)
     draw = ImageDraw.Draw(image)
     mask_image = np.zeros((result.orig_img.shape[0], result.orig_img.shape[1]), dtype=np.uint8)
@@ -202,6 +206,34 @@ def get_object_from_video(results, path="output.mp4", classes="all", mask=False,
     imageio.mimsave(path, frames, fps=24, quality=8, codec='h264')  # <---- to be removed
 
 
+def results_to_json(results):
+    boxes = {}
+    masks = {}
+    scores = {}
+    labels = {}
+
+    for index, result in enumerate(results):
+        boxes[index] = result.boxes.xywh.tolist()
+        masks[index] = result.masks.xy
+        scores[index] = result.boxes.conf.tolist()
+        labels[index] = result.boxes.cls.tolist()
+
+    json_results = {
+        "boxes": boxes,
+        "masks": masks,
+        "scores": scores,
+        "labels": labels,
+    }
+    return json.dumps(json_results, cls=NumpyEncoder)
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+
+
 
 ##### HOW TO USE YOLO
 
@@ -212,9 +244,10 @@ def get_object_from_video(results, path="output.mp4", classes="all", mask=False,
 
 
 #### (2) Loading an existing model for predicting
-model = load_pretrained_model('C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt', "segment")
-detection_output = model.predict(source="C://Users//RaahimSiddiqi//Desktop//p1.png", conf=0.3, save=True) 
-get_object_from_image(detection_output, classes=[5], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.jpg")
+# model = load_pretrained_model('C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt', "segment")
+# detection_output = model.predict(source="C://Users//RaahimSiddiqi//Desktop//Code//VSC//p1.png", conf=0.3) 
+# get_object_from_image(detection_output, background_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.png")
+
 
 ### (3) Loading an existing model for further training
 # model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")
