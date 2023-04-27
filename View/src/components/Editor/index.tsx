@@ -32,8 +32,15 @@ import { Button } from '@mui/material';
 //     }
 //   }
 // }
+const download = (file : File) => {
+  const anchor = document.createElement('a');
+  anchor.href = URL.createObjectURL(file);
+  anchor.download = file.name;
+  anchor.click();
+}
+
 function Editor() {
-  console.log("rerendered")
+
   const [mainFile, setmainFile] = useState<File>();
   const [activeFile, setactiveFile] = useState<File>();
   const dropzoneRef = React.createRef<DropzoneRef>();
@@ -77,10 +84,16 @@ function Editor() {
           </Grid>
         </Grid>
         {mainFile &&
-          <Box mt={3} display='flex' justifyContent='flex-end'>
-            <Button variant='outlined' sx={{ mr: 2 }} onClick={()=>dropzoneRef.current?.open()}>Change Media</Button>
-            <Button variant='contained'>Save Media</Button>
-          </Box>}
+        <>
+          <Box mt={3} display='flex' justifyContent='space-between'>
+            <Button variant='contained'>Start</Button>
+            <Box>
+              <Button variant='outlined' sx={{ mr: 2 }} onClick={()=>dropzoneRef.current?.open()}>Change Media</Button>
+              <Button variant='contained' onClick={() => download(mainFile)}>Save Media</Button>
+            </Box>
+          </Box>
+        </>
+        }
       </Paper>
     </>
   )
