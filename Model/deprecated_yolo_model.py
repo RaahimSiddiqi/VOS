@@ -130,7 +130,7 @@ def get_object_from_image(result, classes='all', save=True, mask=False, backgrou
 
         image = Image.fromarray(segmented_region)
         if save:
-            image.save(f'output2.png')
+            image.save(f'output.png')
         return np.array(image)
     if background_path:
         return np.array(Image.open(background_path).resize((result.orig_img.shape[1], result.orig_img.shape[0])))
@@ -222,6 +222,7 @@ def results_to_json(results):
     masks = {}
     scores = {}
     labels = {}
+    frames = {}
 
     for index, result in enumerate(results):
         boxes[index] = result.boxes.xywh.tolist()
@@ -236,6 +237,7 @@ def results_to_json(results):
         "labels": labels,
     }
     return json.dumps(json_results, cls=NumpyEncoder)
+
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -255,10 +257,18 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 #### (2) Loading an existing model for predicting
-model = load_pretrained_model('C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt', "segment")
-detection_output = model.predict(source="C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input1.mp4", conf=0.3) 
-get_object_from_video(detection_output)
+model = load_pretrained_model('yolov8s-seg.pt', "segment")
+detection_output = model.predict(save=True, source="C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input10.mp4", conf=0.3) 
 
+import time
+start = time.time()
+print(start)
+
+data = results_to_json(detection_output)
+
+with open('data.json', 'w') as f:
+    f.write(data)
+    
 
 ### (3) Loading an existing model for further training
 # model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")
