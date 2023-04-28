@@ -1,11 +1,11 @@
 import React from 'react';
-import { Slider, Button, FormControl, InputLabel, Select, MenuItem, Typography, Grid, Box, FormGroup, FormControlLabel, Checkbox, FormHelperText, SelectChangeEvent, styled } from '@mui/material';
+import { Slider, Button, FormControl, InputLabel, Select, MenuItem, Typography, Grid, Box, FormGroup, FormControlLabel, Checkbox, FormHelperText, SelectChangeEvent, styled, Paper, Autocomplete, TextField } from '@mui/material';
 import Dropzone from 'react-dropzone'
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import ImageIcon from '@mui/icons-material/Image';
 import { MediaUploadPreview } from '../../components';
 import { RgbaStringColorPicker } from "react-colorful";
-import { useFormik } from "formik";
+import modelsInfo from '../../assets/models_info.json';
 
 interface ControllerProps {
   activeFile: File | undefined;
@@ -13,13 +13,13 @@ interface ControllerProps {
 
 }
 interface InferenceParamsInterface {
-  model: 'YOLOv8' | 'YOLOv5',
-  imageSize: 640 | 320,
-  conf: number,
-  iou: number,
-  showLabels: boolean,
-  showBoxes: boolean,
-  showConf: boolean
+  model: 'yolov8s-seg' | 'yolov8s-seg-davis';
+  conf: number;
+  iou: number;
+  showLabels: boolean;
+  showBoxes: boolean;
+  showConf: boolean;
+  classes: string[];
 }
 interface BackgroundInterface {
   file: File | undefined;
@@ -46,12 +46,12 @@ const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChang
       <ul>
         <li>
           <Typography variant='body1' gutterBottom>Upload an image.</Typography>
-          <MediaUploadPreview 
+          <MediaUploadPreview
             file={background.file}
             setfile={(file) => handlebackgroundChange(file, 'file')}
             accept={['image']}
             uploadIcon={<ImageIcon />}
-            style={{padding: 10, width: 200, height: 100, border: 'dashed gray 1px', borderRadius: '6%'}}
+            style={{ padding: 10, width: 200, height: 100, border: 'dashed gray 1px', borderRadius: '6%' }}
           />
         </li>
         <li>
@@ -67,13 +67,13 @@ interface InferenceParamsProps {
 
 const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChange }) => {
   const [inferenceParams, setinferenceParams] = React.useState<InferenceParamsInterface>({
-    model: 'YOLOv8',
-    imageSize: 640,
+    model: 'yolov8s-seg',
     conf: 0.5,
     iou: 0.5,
     showLabels: true,
     showBoxes: true,
     showConf: true,
+    classes: [],
   });
   const handleinferenceParamsChange = (newValue: any, param: keyof InferenceParamsInterface) => {
     setinferenceParams({ ...inferenceParams, [param]: newValue });
@@ -83,23 +83,25 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
       <FormControl>
         <InputLabel>Model</InputLabel>
         <Select sx={{ width: 150, mr: 3 }} value={inferenceParams.model} label='Model' onChange={(event) => handleinferenceParamsChange(event.target.value, 'model')}>
-          <MenuItem value='YOLOv5'>
-            YOLOv5
+          <MenuItem value='yolov8s-seg'>
+            COCO
           </MenuItem>
-          <MenuItem value='YOLOv8'>
-            YOLOv8
+          <MenuItem value='yolov8s-seg-davis'>
+            DAVIS
           </MenuItem>
         </Select>
       </FormControl>
-
-      <FormControl>
-        <InputLabel>Image Size</InputLabel>
-        <Select sx={{ width: 150 }} value={inferenceParams.imageSize} label='Image Size' onChange={(event) => handleinferenceParamsChange(event.target.value as number, 'imageSize')}>
-          <MenuItem value={320}>320</MenuItem>
-          <MenuItem value={640}>640</MenuItem>
-        </Select>
-      </FormControl>
-
+      <Typography variant="h6" mt={5}>Classes</Typography>
+      <Typography variant="body1" gutterBottom>Select the classes for segmentation.</Typography>
+      <Autocomplete
+        multiple
+        limitTags={4}
+        options={modelsInfo[inferenceParams.model]}
+        getOptionLabel={tag => tag}
+        renderInput={(params) => (
+          <TextField {...params} placeholder="Classes" />
+        )}
+      />
       <Box mt={5}>
         <Typography variant="h6">Thresholds</Typography>
         <ul>
@@ -131,14 +133,14 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
         <Typography variant="h6" color="initial">Advanced</Typography>
         <FormControl component='ul' variant="standard">
           <FormGroup>
-            <ul>  
+            <ul>
               {
                 Object.entries({
                   'showLabels': 'Display labels',
                   'showBoxes': 'Display bounding boxes',
                   'showConf': 'Display confidence'
                 }).map(([key, value]) =>
-                <li>
+                  <li>
                     <FormControlLabel
                       key={key}
                       control={
@@ -150,7 +152,7 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
                       }
                       label={value}
                     />
-                </li>
+                  </li>
                 )
               }
             </ul>

@@ -15,7 +15,6 @@ const download = (file : File) => {
 }
 
 function Editor() {
-
   const [mainFile, setmainFile] = useState<File>();
   const [activeFile, setactiveFile] = useState<File>();
   const dropzoneRef = React.createRef<MediaUploadPreviewRef>();
