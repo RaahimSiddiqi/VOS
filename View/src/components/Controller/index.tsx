@@ -1,9 +1,9 @@
 import React from 'react';
 import { Slider, Button, FormControl, InputLabel, Select, MenuItem, Typography, Grid, Box, FormGroup, FormControlLabel, Checkbox, FormHelperText, SelectChangeEvent, styled } from '@mui/material';
-import Dropzone, { DropzoneRef, useDropzone } from 'react-dropzone'
+import Dropzone from 'react-dropzone'
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import ImageIcon from '@mui/icons-material/Image';
-import { MediaFilePreview, useMediaUpload } from '../../components';
+import { MediaUploadPreview } from '../../components';
 import { RgbaStringColorPicker } from "react-colorful";
 import { useFormik } from "formik";
 
@@ -12,52 +12,12 @@ interface ControllerProps {
   onSubmit: (file: File) => any;
 
 }
-// interface CheckboxGroupProps {
-//   onSubmit: (values: any) => any
-//   tags: string[]
-// }
-
-// const backgroundRemovalOptions = () => {
-//   return (
-//     <Box mt={5}>
-//       <Typography variant='h6' gutterBottom >Background</Typography>
-//       <ul>
-//         <li>
-//           <Typography variant='body1' gutterBottom>Upload an image.</Typography>
-//           <Dropzone accept={{
-//             "image/png": [".png"],
-//             "image/jpeg": [".jpg", ".jpeg"],
-//             "image/jpg": [".jpg", ".jpeg"],
-//           }}
-//             onDrop={acceptedFiles => acceptedFiles && setbgFile(acceptedFiles[0])}>
-
-//             {({ getRootProps, getInputProps }) => (
-//               <div {...getRootProps({ style: { padding: 10, width: 200, height: 100, border: 'dashed gray 1px', borderRadius: '6%', display: 'flex', justifyContent: 'center', alignItems: 'center' } })}>
-//                 <input {...getInputProps()} />
-//                 {!bgFile ?
-//                   <ImageIcon />
-//                   :
-//                   <MediaFilePreview file={bgFile} />
-//                 }
-//               </div>
-//             )
-//             }
-//           </Dropzone>
-//         </li>
-//         <li>
-//           <Typography variant='body1' gutterBottom>Choose a color</Typography>
-//           <RgbaStringColorPicker color={bgColor} onChange={setbgColor} />
-//         </li>
-//       </ul>
-//     </Box>
-//   )
-// }
 interface InferenceParamsInterface {
   model: 'YOLOv8' | 'YOLOv5',
   imageSize: 640 | 320,
   conf: number,
   iou: number,
-  showMasks: boolean,
+  showLabels: boolean,
   showBoxes: boolean,
   showConf: boolean
 }
@@ -86,25 +46,13 @@ const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChang
       <ul>
         <li>
           <Typography variant='body1' gutterBottom>Upload an image.</Typography>
-          <Dropzone accept={{
-            "image/png": [".png"],
-            "image/jpeg": [".jpg", ".jpeg"],
-            "image/jpg": [".jpg", ".jpeg"],
-          }}
-            onDrop={acceptedFiles => acceptedFiles && handlebackgroundChange(acceptedFiles[0], 'file')}>
-
-            {({ getRootProps, getInputProps }) => (
-              <div {...getRootProps({ style: { padding: 10, width: 200, height: 100, border: 'dashed gray 1px', borderRadius: '6%', display: 'flex', justifyContent: 'center', alignItems: 'center' } })}>
-                <input {...getInputProps()} />
-                {!background.file ?
-                  <ImageIcon />
-                  :
-                  <MediaFilePreview file={background.file} />
-                }
-              </div>
-            )
-            }
-          </Dropzone>
+          <MediaUploadPreview 
+            file={background.file}
+            setfile={(file) => handlebackgroundChange(file, 'file')}
+            accept={['image']}
+            uploadIcon={<ImageIcon />}
+            style={{padding: 10, width: 200, height: 100, border: 'dashed gray 1px', borderRadius: '6%'}}
+          />
         </li>
         <li>
           <Typography variant='body1' gutterBottom>Choose a color</Typography>
@@ -123,7 +71,7 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
     imageSize: 640,
     conf: 0.5,
     iou: 0.5,
-    showMasks: true,
+    showLabels: true,
     showBoxes: true,
     showConf: true,
   });
@@ -186,7 +134,7 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
             <ul>  
               {
                 Object.entries({
-                  'showMasks': 'Display masks',
+                  'showLabels': 'Display labels',
                   'showBoxes': 'Display bounding boxes',
                   'showConf': 'Display confidence'
                 }).map(([key, value]) =>
