@@ -219,7 +219,7 @@ const Controller: React.FC<ControllerProps> = ({ activeFile, onSubmit }) => {
   return (
     <form style={{ paddingRight: 30, paddingLeft: 30, paddingTop: 20, paddingBottom: 20 }}>
       <InferenceParamsController handleChange={(inferenceParams) => console.log(inferenceParams)} />
-      {/* <BackgroundController handleChange={(background) => console.log(background)} /> */}
+      <BackgroundController handleChange={(background) => console.log(background)} />
     </form>
   );
 };
