@@ -7,11 +7,6 @@ import { MediaUploadPreview } from '../../components';
 import { RgbaStringColorPicker } from "react-colorful";
 import modelsInfo from '../../assets/models_info.json';
 
-interface ControllerProps {
-  activeFile: File | undefined;
-  onSubmit: (file: File) => any;
-
-}
 export interface InferenceParamsInterface {
   model: 'yolov8s-seg' | 'yolov8s-seg-davis';
   conf: number;
@@ -174,9 +169,8 @@ export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ hand
                   'showBoxes': 'Display bounding boxes',
                   'showConf': 'Display confidence'
                 }).map(([key, value]) =>
-                  <li>
+                  <li key={key}>
                     <FormControlLabel
-                      key={key}
                       control={
                         <Checkbox
                           checked={Boolean(inferenceParams[key as keyof typeof inferenceParams])}
