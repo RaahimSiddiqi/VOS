@@ -1,4 +1,5 @@
-export {default as Controller} from './Controller';
+export { BackgroundController } from './Controller';
+export { InferenceParamsController } from './Controller';
 export {default as Editor} from './Editor';
 export {default as Header} from './Header';
 export {default as Main} from './Main';

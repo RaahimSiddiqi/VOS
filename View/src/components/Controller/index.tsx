@@ -12,7 +12,7 @@ interface ControllerProps {
   onSubmit: (file: File) => any;
 
 }
-interface InferenceParamsInterface {
+export interface InferenceParamsInterface {
   model: 'yolov8s-seg' | 'yolov8s-seg-davis';
   conf: number;
   iou: number;
@@ -21,7 +21,7 @@ interface InferenceParamsInterface {
   showConf: boolean;
   classes: string[];
 }
-interface BackgroundInterface {
+export interface BackgroundInterface {
   file: File | undefined;
   color: string;
   classes: string[];
@@ -31,7 +31,7 @@ interface BackgroundControllerProps {
   handleChange: (background: BackgroundInterface) => any
   detectedClasses: string[]
 }
-const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChange, detectedClasses }) => {
+export const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChange, detectedClasses }) => {
   const [background, setbackground] = React.useState<BackgroundInterface>({
     file: undefined,
     color: 'rgba(0,0,0,1)',
@@ -89,7 +89,7 @@ interface InferenceParamsProps {
   handleChange: (inferenceParams: InferenceParamsInterface) => any
 }
 
-const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChange }) => {
+export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChange }) => {
   const [inferenceParams, setinferenceParams] = React.useState<InferenceParamsInterface>({
     model: 'yolov8s-seg',
     conf: 0.5,
@@ -199,13 +199,13 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
 }
 
 
-const Controller: React.FC<ControllerProps> = ({ activeFile, onSubmit }) => {
-  return (
-    <form style={{ paddingRight: 30, paddingLeft: 30, paddingTop: 20, paddingBottom: 20 }}>
-      <InferenceParamsController handleChange={(inferenceParams) => console.log(inferenceParams)} />
-      <BackgroundController handleChange={(background) => console.log(background)} detectedClasses={['person', 'airplane']}/>
-    </form>
-  );
-};
+// const Controller: React.FC<ControllerProps> = ({ activeFile, onSubmit }) => {
+//   return (
+//     <form style={{ paddingRight: 30, paddingLeft: 30, paddingTop: 20, paddingBottom: 20 }}>
+//       <InferenceParamsController handleChange={(inferenceParams) => console.log(inferenceParams)} />
+//       <BackgroundController handleChange={(background) => console.log(background)} detectedClasses={['person', 'airplane']}/>
+//     </form>
+//   );
+// };
 
-export default Controller;
+// export default Controller;
