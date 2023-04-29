@@ -1,10 +1,16 @@
 import { Box, Grid, Typography, Button} from "@mui/material";
 import bus_pipeline_graphic from '../../assets/bus_pipeline_graphic.png';
+import bus_image from '../../assets/bus.png';
+import seg_bus_image from '../../assets/seg_bus.png';
+import extract_bus_image from '../../assets/extract_bus.jpg';
+import filtered_bus_image from '../../assets/filtered_bus.png';
+import replaced_bus_image from '../../assets/replaced_bus.png';
 import { useNavigate } from "react-router-dom"
 import React, { useState, useEffect, useCallback } from 'react';
 import Particles from "react-particles";
 import type { Container, Engine } from "tsparticles-engine";
 import { loadFull } from "tsparticles";
+import { ImgComparisonSlider } from '@img-comparison-slider/react';
 import './index.css'; 
 
 
@@ -103,16 +109,47 @@ const Home = () => {
                         }}
                     />
                    <Box textAlign='center' sx={{margin:"auto"}}>
-                        <Typography m = {0} align="center" fontSize={32}>Unleash the power of visual intelligence with Seer</Typography>
-                        <Typography align="center" fontSize={26}>The Ultimate VOS Application</Typography>
+                        <Typography variant="h1" fontSize={40} m={0} align="center">Unleash the power of visual intelligence with Seer</Typography>
+                        <Typography variant="h2" fontSize={30} align="center" paddingTop={1}>The Ultimate VOS Application</Typography>
                         <Box sx={{p: 1}}>
-                            <Button variant="contained" onClick={() => navigate("/editor")}>Try Now!</Button>
+                            <Button sx={{width:150, height:40}} variant="contained" onClick={() => navigate("/editor")}><Typography fontSize={18}>Try Now!</Typography></Button>
                         </Box>
                     </Box>
                 </Grid>   
-                <Grid item xs={12} md={12}>
-                    <Box>
-                        <img src={bus_pipeline_graphic}></img>
+                <Grid paddingTop={5} item xs={12} md={12} style={{ height:'calc(100vh - 65px)'}}>
+                    <Box textAlign='center' sx={{margin:"auto"}}>
+                        <Typography variant="h3">Object Detection and Segmentation</Typography>
+                        <ImgComparisonSlider>
+                            <img slot="second" src={bus_image}/>
+                            <img slot="first" src={seg_bus_image} />
+                        </ImgComparisonSlider>
+                    </Box>
+                </Grid>   
+                <Grid paddingTop={5} item xs={12} md={12} style={{ height:'calc(100vh - 65px)'}}>
+                    <Box textAlign='center' sx={{margin:"auto"}}>
+                        <Typography variant="h3">Filtering by Object Class</Typography>
+                        <ImgComparisonSlider>
+                            <img slot="second" src={seg_bus_image}/>
+                            <img slot="first" src={filtered_bus_image} />
+                        </ImgComparisonSlider>
+                    </Box>
+                </Grid>   
+                <Grid paddingTop={5} item xs={12} md={12} style={{ height:'calc(100vh - 65px)'}}>
+                    <Box textAlign='center' sx={{margin:"auto"}}>
+                        <Typography variant="h3">Background Removal</Typography>
+                        <ImgComparisonSlider>
+                            <img slot="first" src={bus_image}/>
+                            <img slot="second" src={extract_bus_image} />
+                        </ImgComparisonSlider>
+                    </Box>
+                </Grid>   
+                <Grid paddingTop={5} item xs={12} md={12} style={{ height:'calc(100vh - 65px)'}}>
+                    <Box textAlign='center' sx={{margin:"auto"}}>
+                        <Typography variant="h3">Background Replacement</Typography>
+                        <ImgComparisonSlider>
+                            <img slot="first" src={bus_image}/>
+                            <img slot="second" src={replaced_bus_image} />
+                        </ImgComparisonSlider>
                     </Box>
                 </Grid>   
             </Grid>

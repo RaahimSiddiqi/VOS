@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import imageio
 import os
+from tqdm import tqdm
 from InferenceController import InferenceController
 
 
@@ -10,7 +11,11 @@ class BackgroundController():
     def __init__(self, source, results) -> None:
         self.extension = os.path.splitext(source)[1].lower()
         self.results = results
-        self.original_frame_data = self.extract_data_from_video(source)
+
+        if self.extension == '.mp4':
+            self.original_frame_data = self.extract_data_from_video(source)
+        elif self.extension in ['.jpg', '.png']:       
+            self.original_frame_data = [np.array(Image.open(source))]
 
 
     def extract_data_from_video(self, source):
@@ -18,7 +23,7 @@ class BackgroundController():
         num_frames = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
 
         frames = []
-        for i in range(num_frames):
+        for i in tqdm(range(num_frames)):
             # set the current frame position
             video_capture.set(cv2.CAP_PROP_POS_FRAMES, i)
 
@@ -39,7 +44,7 @@ class BackgroundController():
         if self.extension == '.mp4':
             self.get_object_from_video(self.results, *args, **kwargs)
         elif self.extension in ['.jpg', '.png']:
-            self.get_object_from_image(self.results[0], *args, **kwargs)
+            self.get_object_from_image(self.results[0], self.original_frame_data[0], *args, **kwargs)
 
 
     def get_colormap(self):
@@ -122,7 +127,7 @@ class BackgroundController():
             Saves a video using the processed frames acquired from other functions.
         """
         frames = []
-        for index, result in enumerate(results):
+        for index, result in enumerate(tqdm(results)):
             frame = self.get_object_from_image(results[index], self.original_frame_data[index], 
                                                classes=classes, save=False, background_path=background_path)
             frames.append(frame)  
@@ -131,10 +136,10 @@ class BackgroundController():
 
 ### HOW TO USE
 model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input1.mp4"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//bus.png"
 
 inferenceController = InferenceController(model_path, source_path)
-results, classes = inferenceController.predict()
+results, classes = inferenceController.predict(save=True,classes=[5])
 
 backgroundController = BackgroundController(source_path, results)
-backgroundController.predict(classes=[5], background_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.png")
+backgroundController.predict(classes=[5], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//Sand-Dunes.png")

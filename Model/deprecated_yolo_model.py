@@ -257,18 +257,22 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 #### (2) Loading an existing model for predicting
-model = load_pretrained_model('yolov8s-seg.pt', "segment")
-detection_output = model.predict(save=True, source="C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input10.mp4", conf=0.3) 
+# model = load_pretrained_model('C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg-davis.pt', "segment")
+# detection_output = model.predict(save=True, source="C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input10.mp4", conf=0.3) 
+# print(detection_output[0].names)
+# import time
+# start = time.time()
+# print(start)
 
-import time
-start = time.time()
-print(start)
+# data = results_to_json(detection_output)
 
-data = results_to_json(detection_output)
-
-with open('data.json', 'w') as f:
-    f.write(data)
+# with open('data.json', 'w') as f:
+#     f.write(data)
     
+from tqdm import tqdm
+
+for i in tqdm(range(10000)):
+    pass
 
 ### (3) Loading an existing model for further training
 # model = load_pretrained_model('runs/segment/train/weights/best.pt', "segment")

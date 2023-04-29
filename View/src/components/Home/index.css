@@ -1,12 +1,5 @@
-.particles-wrapper {
-    height: '100vh';
-    position:'absolute';
-  }
-
 #tsparticles-custom {
     position: absolute;
-    /* left: calc(50% - 100px);
-    top: calc(50% - 100px); */
     margin: 0;
     padding: 0;
     height: 95%;

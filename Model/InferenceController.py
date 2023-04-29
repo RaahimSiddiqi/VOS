@@ -86,9 +86,10 @@ class InferenceController():
         with open('data.json', 'w') as f:
             f.write(json_data)
 
+
 # HOW TO USE
 # inferenceController = InferenceController("C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt", "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input10.mp4")
-# results, classes = inferenceController.predict()
+# results, classes = inferenceController.predict(classes = [5])
 # print(results, classes)
 
 
