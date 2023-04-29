@@ -91,7 +91,7 @@ async def predict_segments(model_name: ModelName = Form(),
         json_results = inference.results_to_json_format(results)
         classes_detected = inference.get_labels_per_video(results)
 
-        # Get the relative path to the output file
+        # Get the relative path to YOLO's output file
         out_dir = "YOLO_output/video"
         out_file = os.listdir(out_dir)[0]
         out_file_path = os.path.join(out_dir, out_file)
@@ -101,15 +101,19 @@ async def predict_segments(model_name: ModelName = Form(),
 
         # Encode videos to h264 since it's widely compatible
         if "video" in media_type:
+            # Define a path for the H.264 video
+            h264_file_path = os.path.join(out_dir, "h264encodedfile.mp4")
             # Convert video to H.264
-            writer = imageio.get_writer(out_file_path, codec="h264")
             reader = imageio.get_reader(out_file_path)
+            writer = imageio.get_writer(h264_file_path, codec="h264", fps=reader.get_meta_data()['fps'])
             for frame in reader:
                 writer.append_data(frame)
             reader.close()
             writer.close()
             # Update media type
             media_type = "video/h264"
+            # Update the output file path to be the one for the H264 encoded video 
+            out_file_path=h264_file_path
 
         # Encode the img/vid file into a string to be able to be sent as JSON
         with open(out_file_path, "rb") as output_file:
