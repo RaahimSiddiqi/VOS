@@ -96,7 +96,42 @@ export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ hand
   });
 
   const handleinferenceParamsChange = (newValue: any, param: keyof InferenceParamsInterface) => {
-    const newParams = { ...inferenceParams, [param]: newValue };
+    let newParams : InferenceParamsInterface; 
+    if(param.startsWith('show')){
+      const showParams = {showLabels : inferenceParams.showLabels, showBoxes : inferenceParams.showBoxes, showConf : inferenceParams.showConf};      
+      if(param === 'showBoxes'){
+        if(newValue){
+          showParams.showBoxes = true;
+        }
+        else{
+          showParams.showBoxes = false;
+          showParams.showConf = false;
+          showParams.showLabels = false;
+        }
+      }
+      else if(param === 'showLabels'){
+        if(newValue){
+          showParams.showLabels = true;
+          showParams.showBoxes = true;
+        }
+        else{
+          showParams.showConf = false;
+          showParams.showLabels = false;
+        }
+      }
+      else if(param === 'showConf'){
+        if(newValue){
+          showParams.showConf = true;
+          showParams.showLabels = true;
+          showParams.showBoxes = true;
+        }
+        else showParams.showConf = false;
+      }
+      newParams = {...inferenceParams, ...showParams};
+    }
+    else{
+      newParams = { ...inferenceParams, [param]: newValue };
+    }
     setinferenceParams(newParams);
     handleChange(newParams);
   }

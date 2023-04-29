@@ -10,6 +10,7 @@ import { useAsyncCallback } from 'react-async-hook';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase-config';
 import { useNavigate } from "react-router-dom";
+import modelsInfo from '../../assets/models_info.json';
 
 
 const download = (file: File) => {
@@ -18,21 +19,31 @@ const download = (file: File) => {
   anchor.download = file.name;
   anchor.click();
 }
+const formDataFromObject = (obj : {[key : string] : any}) => {
+  const data = new FormData();
+  for(const key in obj){
+    data.append(key, obj[key]);
+  }
+  return data;
+}
 
 const inference = async (video: File, inferenceParams: InferenceParamsInterface) => {
-  // const request = FormData
-  // return fetch()
-  return new Promise<File>((resolve, reject) => {
-    setTimeout(() => {
-      fetch(rhino)
-        .then(response => response.blob())
-        .then(blob => {
-          const file = new File([blob], 'rhino.mp4', { type: 'video/mp4' });
-          resolve(file);
-        })
-        .catch(error => reject(error));
-    }, 3000);
+  const model_name = inferenceParams.model;
+  const conf_thresh = inferenceParams.conf;
+  const iou_thresh = inferenceParams.iou;
+  const filter_classes = inferenceParams.classes.map(label => modelsInfo[model_name].indexOf(label));
+  const file = video;
+  const output_video_case =!inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 1 :
+                            inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
+                            inferenceParams.showBoxes && !inferenceParams.showConf && inferenceParams.showLabels  ? 3 :
+                                                                                                                    4 ;
+  const response = await fetch("http://localhost:8000/predict",{
+    method : "POST", 
+    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes })
   });
+  const blob = await response.blob();
+  return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
+
 }
 
 const backgroundChange = async(video : File, background : BackgroundInterface) => {
@@ -143,7 +154,11 @@ function Editor() {
                 <Button variant='contained' disabled={segmentFetch.loading} onClick={segmentFetch.execute}>Extract</Button>
               }
               <Box>
-                <Button variant='outlined' sx={{ mr: 2 }} onClick={() => dropzoneRef.current?.openFileDialog()}>Change Media</Button>
+                <Button variant='outlined' sx={{ mr: 2 }}
+                  onClick={() => {
+                    dropzoneRef.current?.openFileDialog();
+                    editorState.current = EditorState.Inference;
+                  }}>Change Media</Button>
                 <Button variant='contained' onClick={() => download(mainFile)}>Save Media</Button>
               </Box>
             </Box>

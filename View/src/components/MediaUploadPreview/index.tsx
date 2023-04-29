@@ -49,7 +49,7 @@ const MediaUploadPreview = React.forwardRef<MediaUploadPreviewRef, MediaUploadPr
                     src={URL.createObjectURL(file)}
                     autoPlay
                     controls
-                    style={{ objectFit: "contain", maxWidth: "100%" }}
+                    style={{ objectFit: "contain", width : "100%" }}
                 />
             ) : (
                 <img
