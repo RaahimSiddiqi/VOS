@@ -7,11 +7,6 @@ import { MediaUploadPreview } from '../../components';
 import { RgbaStringColorPicker } from "react-colorful";
 import modelsInfo from '../../assets/models_info.json';
 
-interface ControllerProps {
-  activeFile: File | undefined;
-  onSubmit: (file: File) => any;
-
-}
 export interface InferenceParamsInterface {
   model: 'yolov8s-seg' | 'yolov8s-seg-davis';
   conf: number;
@@ -101,7 +96,42 @@ export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ hand
   });
 
   const handleinferenceParamsChange = (newValue: any, param: keyof InferenceParamsInterface) => {
-    const newParams = { ...inferenceParams, [param]: newValue };
+    let newParams : InferenceParamsInterface; 
+    if(param.startsWith('show')){
+      const showParams = {showLabels : inferenceParams.showLabels, showBoxes : inferenceParams.showBoxes, showConf : inferenceParams.showConf};      
+      if(param === 'showBoxes'){
+        if(newValue){
+          showParams.showBoxes = true;
+        }
+        else{
+          showParams.showBoxes = false;
+          showParams.showConf = false;
+          showParams.showLabels = false;
+        }
+      }
+      else if(param === 'showLabels'){
+        if(newValue){
+          showParams.showLabels = true;
+          showParams.showBoxes = true;
+        }
+        else{
+          showParams.showConf = false;
+          showParams.showLabels = false;
+        }
+      }
+      else if(param === 'showConf'){
+        if(newValue){
+          showParams.showConf = true;
+          showParams.showLabels = true;
+          showParams.showBoxes = true;
+        }
+        else showParams.showConf = false;
+      }
+      newParams = {...inferenceParams, ...showParams};
+    }
+    else{
+      newParams = { ...inferenceParams, [param]: newValue };
+    }
     setinferenceParams(newParams);
     handleChange(newParams);
   }
@@ -174,9 +204,8 @@ export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ hand
                   'showBoxes': 'Display bounding boxes',
                   'showConf': 'Display confidence'
                 }).map(([key, value]) =>
-                  <li>
+                  <li key={key}>
                     <FormControlLabel
-                      key={key}
                       control={
                         <Checkbox
                           checked={Boolean(inferenceParams[key as keyof typeof inferenceParams])}

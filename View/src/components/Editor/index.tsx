@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, Typography, Box, Paper, CircularProgress, Backdrop } from '@mui/material';
 import { BackgroundController, InferenceParamsController, MediaUploadPreview } from './../../components';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
-import Dropzone, { DropzoneRef } from 'react-dropzone';
 import { Button } from '@mui/material';
 import { MediaUploadPreviewRef } from '../MediaUploadPreview';
 import ImageIcon from '@mui/icons-material/Image';
@@ -12,6 +10,7 @@ import { useAsyncCallback } from 'react-async-hook';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase-config';
 import { useNavigate } from "react-router-dom";
+import modelsInfo from '../../assets/models_info.json';
 
 
 const download = (file: File) => {
@@ -20,19 +19,31 @@ const download = (file: File) => {
   anchor.download = file.name;
   anchor.click();
 }
+const formDataFromObject = (obj : {[key : string] : any}) => {
+  const data = new FormData();
+  for(const key in obj){
+    data.append(key, obj[key]);
+  }
+  return data;
+}
 
 const inference = async (video: File, inferenceParams: InferenceParamsInterface) => {
-  return new Promise<File>((resolve, reject) => {
-    setTimeout(() => {
-      fetch(rhino)
-        .then(response => response.blob())
-        .then(blob => {
-          const file = new File([blob], 'rhino.mp4', { type: 'video/mp4' });
-          resolve(file);
-        })
-        .catch(error => reject(error));
-    }, 3000);
+  const model_name = inferenceParams.model;
+  const conf_thresh = inferenceParams.conf;
+  const iou_thresh = inferenceParams.iou;
+  const filter_classes = inferenceParams.classes.map(label => modelsInfo[model_name].indexOf(label));
+  const file = video;
+  const output_video_case =!inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 1 :
+                            inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
+                            inferenceParams.showBoxes && !inferenceParams.showConf && inferenceParams.showLabels  ? 3 :
+                                                                                                                    4 ;
+  const response = await fetch("http://localhost:8000/predict",{
+    method : "POST", 
+    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes })
   });
+  const blob = await response.blob();
+  return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
+
 }
 
 const backgroundChange = async(video : File, background : BackgroundInterface) => {
@@ -88,67 +99,72 @@ function Editor() {
           setmainFile(file);
           editorState.current = EditorState.Background;
         }));
-
+  const extractFetch = useAsyncCallback(
+    () => mainFile &&
+          background.current &&
+          backgroundChange(mainFile, background.current)
+          .then(file => setmainFile(file))
+  );
   return (
     <>
-    {isAuthenticated ?
-      <>
-        <Paper sx={{ mx: 'auto', padding: 5, my: 2 }} elevation={4}>
-          <Backdrop
-            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-            open={segmentFetch.loading}
-          >
-            <CircularProgress color="inherit" />
-          </Backdrop>
-          {/* <Typography variant='h4' gutterBottom>Image/Video segmentation</Typography> */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
-              <Paper variant='outlined'>
-                <form style={{ paddingRight: 30, paddingLeft: 30, paddingTop: 20, paddingBottom: 20 }}>
-                  {
-                    editorState.current === EditorState.Inference ?
-                      <InferenceParamsController handleChange={newValue => inferenceParams.current = newValue} />
-                      :
-                      <BackgroundController handleChange={newValue => background.current = newValue} detectedClasses={['person', 'airplane']} />
-                  }
-                </form>
-                {/* <Controller activeFile={activeFile} onSubmit={(file) => console.log(file)} /> */}
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={8}>
-              <MediaUploadPreview
-                file={mainFile}
-                setfile={setmainFile}
-                ref={dropzoneRef}
-                accept={['video', 'image']}
-                uploadIcon={<ImageIcon fontSize='large' />}
-                uploadText={"Drag 'n Drop or Click to upload media"}
-                noClick={Boolean(mainFile)}
-                noDrag={Boolean(mainFile)}
-                style={{ width: '100%', height: '100%', border: 'dashed gray 1px', borderRadius: '4px' }}
-              />
-            </Grid>
+
+      <Paper sx={{ mx: 'auto', padding: 5, my: 2 }} elevation={4}>
+        <Backdrop
+          sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          open={segmentFetch.loading}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+
+        <Typography variant='h4' gutterBottom>Image/Video segmentation</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
+            <Paper variant='outlined'>
+              <form style={{ paddingRight: 30, paddingLeft: 30, paddingTop: 20, paddingBottom: 20 }}>
+                {
+                  editorState.current === EditorState.Inference ?
+                    <InferenceParamsController handleChange={newValue => inferenceParams.current = newValue} />
+                    :
+                    <BackgroundController handleChange={newValue => background.current = newValue} detectedClasses={['person', 'airplane']} />
+                }
+              </form>
+              {/* <Controller activeFile={activeFile} onSubmit={(file) => console.log(file)} /> */}
+            </Paper>
           </Grid>
-          {mainFile &&
-            <>
-              <Box mt={3} display='flex' justifyContent='space-between'>
+          <Grid item xs={12} md={8}>
+            <MediaUploadPreview
+              file={mainFile}
+              setfile={setmainFile}
+              ref={dropzoneRef}
+              accept={['video', 'image']}
+              uploadIcon={<ImageIcon fontSize='large' />}
+              uploadText={"Drag 'n Drop or Click to upload media"}
+              noClick={Boolean(mainFile)}
+              noDrag={Boolean(mainFile)}
+              style={{ width: '100%', height: '100%', border: 'dashed gray 1px', borderRadius: '4px' }}
+            />
+          </Grid>
+        </Grid>
+        {mainFile &&
+          <>
+            <Box mt={3} display='flex' justifyContent='space-between'>
+              {editorState.current === EditorState.Inference ?            
                 <Button variant='contained' disabled={segmentFetch.loading} onClick={segmentFetch.execute}>Segment</Button>
-                <Box>
-                  <Button variant='outlined' sx={{ mr: 2 }} onClick={() => dropzoneRef.current?.openFileDialog()}>Change Media</Button>
-                  <Button variant='contained' onClick={() => download(mainFile)}>Save Media</Button>
-                </Box>
+                :
+                <Button variant='contained' disabled={segmentFetch.loading} onClick={segmentFetch.execute}>Extract</Button>
+              }
+              <Box>
+                <Button variant='outlined' sx={{ mr: 2 }}
+                  onClick={() => {
+                    dropzoneRef.current?.openFileDialog();
+                    editorState.current = EditorState.Inference;
+                  }}>Change Media</Button>
+                <Button variant='contained' onClick={() => download(mainFile)}>Save Media</Button>
               </Box>
-            </>
-          }
-        </Paper>
-      </>
-      :
-      <Box sx={{display:"flex", width:"100%", height: 'calc(100vh - 65px)' }}>
-        <Box sx={{m:"auto"}}>
-          <Button variant="contained" onClick={() => navigate("/login")}>Please Login to Use</Button>
-        </Box>
-      </Box>
-    }
+            </Box>
+          </>
+        }
+      </Paper>
     </>
   )
 }
