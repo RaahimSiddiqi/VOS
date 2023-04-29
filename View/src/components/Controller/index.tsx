@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Slider, Button, FormControl, InputLabel, Select, MenuItem, Typography, Grid, Box, FormGroup, FormControlLabel, Checkbox, FormHelperText, SelectChangeEvent, styled, Paper, Autocomplete, TextField } from '@mui/material';
 import Dropzone from 'react-dropzone'
 import ColorLensIcon from '@mui/icons-material/ColorLens';
@@ -24,21 +24,30 @@ interface InferenceParamsInterface {
 interface BackgroundInterface {
   file: File | undefined;
   color: string;
+  classes: string[];
 }
 
 interface BackgroundControllerProps {
   handleChange: (background: BackgroundInterface) => any
+  detectedClasses: string[]
 }
-const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChange }) => {
+const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChange, detectedClasses }) => {
   const [background, setbackground] = React.useState<BackgroundInterface>({
     file: undefined,
-    color: 'rgba(0,0,0,1)'
+    color: 'rgba(0,0,0,1)',
+    classes: []
   });
 
+
   const handlebackgroundChange = (newValue: any, param: keyof BackgroundInterface) => {
-    setbackground({ ...background, [param]: newValue });
-    handleChange(background);
+    const newBackg = { ...background, [param]: newValue }
+    setbackground(newBackg);
+    handleChange(newBackg);
   }
+
+  React.useEffect(() => {
+    handlebackgroundChange([], 'classes');
+  }, [detectedClasses]);
 
   return (
     <Box>
@@ -58,7 +67,22 @@ const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChang
           <Typography variant='body1' gutterBottom>Choose a color</Typography>
           <RgbaStringColorPicker color={background.color} onChange={(newColor) => handlebackgroundChange(newColor, 'color')} />
         </li>
-      </ul></Box>
+      </ul>
+      <Typography variant='h6' gutterBottom >Extract</Typography>
+      <Typography variant='body1' gutterBottom >Select classes to keep in the video.</Typography>
+      <Autocomplete
+        multiple
+        limitTags={4}
+        options={detectedClasses}
+        getOptionLabel={tag => tag}
+        value={background.classes}
+        onChange={(event, newValue) => handlebackgroundChange(newValue, 'classes')}
+        renderInput={(params) => (
+          <TextField {...params} placeholder="Classes" />
+        )}
+      />
+
+    </Box>
   )
 }
 interface InferenceParamsProps {
@@ -75,9 +99,17 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
     showConf: true,
     classes: [],
   });
+
   const handleinferenceParamsChange = (newValue: any, param: keyof InferenceParamsInterface) => {
-    setinferenceParams({ ...inferenceParams, [param]: newValue });
+    const newParams = { ...inferenceParams, [param]: newValue };
+    setinferenceParams(newParams);
+    handleChange(newParams);
   }
+
+  React.useEffect(() => {
+    handleinferenceParamsChange([], 'classes');
+  }, [inferenceParams.model]);
+
   return (
     <>
       <FormControl>
@@ -98,6 +130,8 @@ const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChang
         limitTags={4}
         options={modelsInfo[inferenceParams.model]}
         getOptionLabel={tag => tag}
+        value={inferenceParams.classes}
+        onChange={(event, newValue) => handleinferenceParamsChange(newValue, 'classes')}
         renderInput={(params) => (
           <TextField {...params} placeholder="Classes" />
         )}
@@ -169,7 +203,7 @@ const Controller: React.FC<ControllerProps> = ({ activeFile, onSubmit }) => {
   return (
     <form style={{ paddingRight: 30, paddingLeft: 30, paddingTop: 20, paddingBottom: 20 }}>
       <InferenceParamsController handleChange={(inferenceParams) => console.log(inferenceParams)} />
-      <BackgroundController handleChange={(background) => console.log(background)} />
+      <BackgroundController handleChange={(background) => console.log(background)} detectedClasses={['person', 'airplane']}/>
     </form>
   );
 };
