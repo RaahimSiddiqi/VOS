@@ -24,7 +24,10 @@ const Header = () => {
             <Toolbar>       
                 <Typography variant="h5" component='div' sx={{flexGrow:1}}>Seer</Typography>
                 {isAuthenticated ?
+                <>
+                <Typography paddingRight={1}>Welcome, {auth.currentUser?.email}</Typography>
                 <Button variant="outlined" color="inherit" onClick={() => SignOut(auth)}>Logout</Button>
+                </>
                 :
                 <Button variant="outlined" color="inherit" onClick={() => navigate("/login")}>Login</Button>
                 }
