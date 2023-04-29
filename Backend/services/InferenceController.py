@@ -1,13 +1,5 @@
 from ultralytics import YOLO
 from itertools import chain 
-import numpy as np
-import json
-
-# class NumpyEncoder(json.JSONEncoder):
-#     def default(self, obj):
-#         if isinstance(obj, np.ndarray):
-#             return obj.tolist()
-#         return json.JSONEncoder.default(self, obj)
 
 class InferenceController():
     #Loads the required YOLO model for segmenting
