@@ -9,7 +9,11 @@ class BackgroundController():
     def __init__(self, source, results) -> None:
         self.extension = os.path.splitext(source)[1].lower()
         self.results = results
-        self.original_frame_data = self.extract_data_from_video(source)
+
+        if self.extension == '.mp4':
+            self.original_frame_data = self.extract_data_from_video(source)
+        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:      
+            self.original_frame_data = [np.array(Image.open(source))]
 
 
     def extract_data_from_video(self, source):
@@ -27,6 +31,7 @@ class BackgroundController():
                 break
 
             frame = np.asarray(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frames.append(frame)
 
         video_capture.release()
@@ -37,8 +42,8 @@ class BackgroundController():
     def predict(self, *args, **kwargs):
         if self.extension == '.mp4':
             self.get_object_from_video(self.results, *args, **kwargs)
-        elif self.extension in ['.jpg', '.png']:
-            self.get_object_from_image(self.results[0], *args, **kwargs)
+        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:
+            self.get_object_from_image(self.results[0], self.original_frame_data[0], *args, **kwargs)
 
 
     def get_colormap(self):
@@ -54,13 +59,13 @@ class BackgroundController():
     ]
 
 
-    def get_object_from_image(self, result, orig_frame, output_path="output.png", classes='all', save=True, mask=False, background_path=None, alpha=True):
+    def get_object_from_image(self, result, original_frame, output_path="output.png", classes='all', save=True, mask=False, background_path=None, alpha=True):
         """
         This function isolates an object(s) from the background using its masks in a frame.
 
         params:
             result: The result for a single frame
-            orig_frame: Contains the data from the original frame of the video in numpy array form
+            original_frame: Contains the data from the original frame of the video in numpy array form
             classes: A list which defines which classes should be included in the output image. 
             save: Boolean value which defines whether to save image to the disk
             background_path: Filepath of the background image which will replace the old background
@@ -68,10 +73,10 @@ class BackgroundController():
         returns:
             A numpy image array
         """
-        orig_background = orig_frame
+        background = original_frame
         if alpha:
-            orig_background = cv2.cvtColor(orig_background, cv2.COLOR_RGB2RGBA)
-        mask_image = np.zeros((orig_background.shape[0], orig_background.shape[1]), dtype=np.uint8)
+            background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
+        mask_image = np.zeros((background.shape[0], background.shape[1]), dtype=np.uint8)
         
         if result["masks"] != None:  # If no masks are found, return a black image
             for index, mask in enumerate(result["masks"]):
@@ -85,12 +90,12 @@ class BackgroundController():
 
             # Apply the mask containing all our required classes to the background image to extract the segmented region
             if alpha:
-                segmented_region = cv2.cvtColor(cv2.bitwise_and(orig_background, orig_background, mask=mask_image), cv2.COLOR_BGR2RGBA)
+                segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
             else:
-                segmented_region = cv2.cvtColor(cv2.bitwise_and(orig_background, orig_background, mask=mask_image), cv2.COLOR_BGR2RGB)
+                segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
             
             if background_path:
-                new_background = np.array(Image.open(background_path).resize((orig_frame.shape[1], orig_frame.shape[0])))
+                new_background = np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
                 if new_background.shape[2] == 4 and not alpha: # convert new_background RBG format if the output image must be RGB
                     new_background = cv2.cvtColor(new_background, cv2.COLOR_RGBA2RGB)
                     mask = np.all(segmented_region == [0, 0, 0], axis=-1)
@@ -103,8 +108,8 @@ class BackgroundController():
                 image.save(output_path)
             return np.array(image)
         if background_path:
-            return np.array(Image.open(background_path).resize((orig_frame.shape[1], orig_frame.shape[0])))
-        return np.zeros_like(orig_background)
+            return np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
+        return np.zeros_like(background)
 
 
     def get_object_from_video(self, results, output_path="output.mp4", classes="all", background_path=None):
