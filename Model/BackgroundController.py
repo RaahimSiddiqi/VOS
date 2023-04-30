@@ -12,9 +12,9 @@ class BackgroundController():
         self.extension = os.path.splitext(source)[1].lower()
         self.results = results
 
-        if self.extension == '.mp4':
+        if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.original_frame_data = self.extract_data_from_video(source)
-        elif self.extension in ['.jpg', '.png', 'jpeg']:       
+        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:      
             self.original_frame_data = [np.array(Image.open(source))]
 
 
@@ -42,10 +42,10 @@ class BackgroundController():
 
 
     def predict(self, *args, **kwargs):
-        if self.extension == '.mp4':
+        if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.get_object_from_video(self.results, *args, **kwargs)
-        elif self.extension in ['.jpg', '.png']:
-            self.get_object_from_image(self.results[0], self.original_frame_data[0], *args, **kwargs)
+        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:
+            self.get_object_from_image(self.results["0"], self.original_frame_data[0], *args, **kwargs)
 
 
     def get_colormap(self):
@@ -61,7 +61,7 @@ class BackgroundController():
     ]
 
 
-    def get_object_from_image(self, result, original_frame, output_path="output.png", classes='all', save=True, mask=False, background_path=None, alpha=True):
+    def get_object_from_image(self, result, original_frame, classes=None, save=True, mask=False, background_path=None):
         """
         This function isolates an object(s) from the background using its masks in a frame.
 
@@ -70,13 +70,12 @@ class BackgroundController():
             original_frame: Contains the data from the original frame of the video in numpy array form
             classes: A list which defines which classes should be included in the output image. 
             save: Boolean value which defines whether to save image to the disk
-            background_path: Filepath of the background image which will replace the old background
-            alpha: Decides whether the new background will be black or transparent.
+            background_path: Filepath of the background image which will replace the old background.
         returns:
             A numpy image array
         """
         background = original_frame
-        if alpha:
+        if background.shape[2] != 4:
             background = cv2.cvtColor(background, cv2.COLOR_RGB2RGBA)
         mask_image = np.zeros((background.shape[0], background.shape[1]), dtype=np.uint8)
         
@@ -85,36 +84,31 @@ class BackgroundController():
                 class_id = result["labels"][index]
 
                 # Filter classes if required, and draw the object onto the mask
-                if classes=='all' or class_id in classes:
+                if classes is None or class_id in classes:
                     mask = np.round(mask, decimals=0)
                     mask = mask.astype(int)
                     cv2.fillPoly(mask_image, [mask], (255, 255, 255))
 
             # Apply the mask containing all our required classes to the background image to extract the segmented region
-            if alpha:
-                segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
-            else:
-                segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
+            segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
             
             if background_path:
                 new_background = np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
-                if new_background.shape[2] == 4 and not alpha: # convert new_background RBG format if the output image must be RGB
-                    new_background = cv2.cvtColor(new_background, cv2.COLOR_RGBA2RGB)
-                    mask = np.all(segmented_region == [0, 0, 0], axis=-1)
-                else:
-                    mask = np.all(segmented_region == [0, 0, 0, 0], axis=-1)
+                if new_background.shape[2] == 3: 
+                    new_background = cv2.cvtColor(new_background, cv2.COLOR_RGB2RGBA)
+                mask = np.all(segmented_region == [0, 0, 0, 0], axis=-1)
                 segmented_region[mask] = new_background[mask]
 
             image = Image.fromarray(segmented_region)
             if save:
-                image.save(output_path)
+                image.save("output.png")
             return np.array(image)
         if background_path:
             return np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
         return np.zeros_like(background)
 
 
-    def get_object_from_video(self, results, output_path="output.mp4", classes="all", background_path=None):
+    def get_object_from_video(self, results, classes=None, background_path=None):
         """
         This function creates a video which isolates all the required classes, 
         and removes the background and other irrelvant classes.
@@ -129,18 +123,19 @@ class BackgroundController():
         """
         frames = []
         for index, result in enumerate(tqdm(results)):
-            frame = self.get_object_from_image(results[index], self.original_frame_data[index], 
+            frame = self.get_object_from_image(results[str(index)], self.original_frame_data[index], 
                                                classes=classes, save=False, background_path=background_path)
             frames.append(frame)  
-        imageio.mimsave(output_path, frames, fps=24, quality=8, codec='h264') 
+        imageio.mimsave("output" + self.extension, frames, fps=24, quality=8, codec='h264') 
+
 
 
 ### HOW TO USE
 model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//bus.png"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//cute_cat.jpeg"
 
 inferenceController = InferenceController(model_path, source_path)
-results, classes = inferenceController.predict(save=True)
+results, classes = inferenceController.predict()
 
 backgroundController = BackgroundController(source_path, results)
-backgroundController.predict(classes=[5])
+backgroundController.predict(background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.jpg")
