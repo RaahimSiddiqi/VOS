@@ -1,8 +1,9 @@
 #tsparticles-custom {
     position: absolute;
+    top:65;
     margin: 0;
     padding: 0;
-    height: 95%;
+    height: 90%;
     width: 95%;
     z-index: 0;
   }

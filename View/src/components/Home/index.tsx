@@ -50,7 +50,7 @@ const Home = () => {
                                     },
                                     onHover: {
                                         enable: true,
-                                        mode: "repulse",
+                                        mode: "grab",
                                     },
                                     resize: true,
                                 },
@@ -76,7 +76,7 @@ const Home = () => {
                                     width: 1,
                                 },
                                 collisions: {
-                                    enable: true,
+                                    enable: false,
                                 },
                                 move: {
                                     direction: "none",
@@ -93,7 +93,7 @@ const Home = () => {
                                         enable: true,
                                         area: 800,
                                     },
-                                    value: 60,
+                                    value: 100,
                                 },
                                 opacity: {
                                     value: 0.5,
