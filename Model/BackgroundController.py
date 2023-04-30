@@ -137,10 +137,10 @@ class BackgroundController():
 
 ### HOW TO USE
 model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images/bus.png"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//bus.png"
 
-inferenceController = InferenceController(model_path, source_path)
+inferenceController = InferenceController("yolov8x-seg.pt", source_path)
 results, classes = inferenceController.predict()
 
 backgroundController = BackgroundController(source_path, results)
-backgroundController.predict()
+backgroundController.predict(classes=[5], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//Sand-dunes.png")

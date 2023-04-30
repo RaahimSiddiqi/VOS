@@ -2,4 +2,4 @@
 *.torchscript
 runs/
 tempCodeRunnerFile.py
-
+__pycache__
