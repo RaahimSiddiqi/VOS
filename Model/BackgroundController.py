@@ -14,7 +14,7 @@ class BackgroundController():
 
         if self.extension == '.mp4':
             self.original_frame_data = self.extract_data_from_video(source)
-        elif self.extension in ['.jpg', '.png']:       
+        elif self.extension in ['.jpg', '.png', 'jpeg']:       
             self.original_frame_data = [np.array(Image.open(source))]
 
 
@@ -33,6 +33,7 @@ class BackgroundController():
                 break
 
             frame = np.asarray(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frames.append(frame)
 
         video_capture.release()
@@ -91,9 +92,9 @@ class BackgroundController():
 
             # Apply the mask containing all our required classes to the background image to extract the segmented region
             if alpha:
-                segmented_region = cv2.cvtColor(cv2.bitwise_and(background, background, mask=mask_image), cv2.COLOR_BGR2RGBA)
+                segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
             else:
-                segmented_region = cv2.cvtColor(cv2.bitwise_and(background, background, mask=mask_image), cv2.COLOR_BGR2RGB)
+                segmented_region = cv2.bitwise_and(background, background, mask=mask_image)
             
             if background_path:
                 new_background = np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
@@ -136,10 +137,10 @@ class BackgroundController():
 
 ### HOW TO USE
 model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//bus.png"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images/bus.png"
 
 inferenceController = InferenceController(model_path, source_path)
-results, classes = inferenceController.predict(save=True,classes=[5])
+results, classes = inferenceController.predict()
 
 backgroundController = BackgroundController(source_path, results)
-backgroundController.predict(classes=[5], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//Sand-Dunes.png")
+backgroundController.predict()

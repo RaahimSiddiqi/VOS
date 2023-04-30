@@ -38,15 +38,16 @@ class InferenceController():
 
         for index, result in enumerate(results):
             json_results[index] = {
-                "boxes" : result.boxes.xywh.tolist(),
-                "masks" : result.masks.xy,
-                "scores": result.boxes.conf.tolist(),
-                "labels": result.boxes.cls.tolist(),
+                "boxes": [[round(num, 4) for num in sublist] for sublist in result.boxes.xywh.tolist()] if len(result.boxes.xywh.tolist()) != 0 else None,
+                "masks" : [[[round(float(val), 2)  for val in inner] for inner in mask] for mask in result.masks.xy] if result.masks is not None else None,
+                "scores": [round(score, 4) for score in result.boxes.conf.tolist()] if len(result.boxes.conf.tolist())!=0 else None,
+                "labels": result.boxes.cls.tolist() if len(result.boxes.cls.tolist())!=0 else None,
             }       
         return json_results
     
     def load_pretrained_model(self, model_name, task="segment"):
         return YOLO(model_name, task)  
+
 
     def get_labels_per_video(self, results):
         """
@@ -58,6 +59,7 @@ class InferenceController():
         labels = self.get_labels_per_frame(results, results[0].names)
         labels = list(set((chain.from_iterable(labels))))
         return sorted(labels, key=lambda x: x[0])
+
 
     def get_labels_per_frame(self, results, unique=False):
         """
@@ -71,14 +73,19 @@ class InferenceController():
         """
         labels = []
         all_labels = results[0].names
+        temp = []
 
         if unique:
             for result in results:
-                labels.append([(num, all_labels[num]) for num in set(result.boxes.cls.tolist())])
+                temp = [(num, all_labels[num]) for num in set(result.boxes.cls.tolist())]
         else:
             for result in results:
-                labels.append([(num, all_labels[num]) for num in result.boxes.cls.tolist()])
+                temp =  [(num, all_labels[num]) for num in result.boxes.cls.tolist()]
+
+        if len(temp) > 0:
+            labels.append(temp)
         return sorted(labels, key=lambda x: x[0])
+    
 
     def write_json_to_file(self, json_format_data, output_path):
         json_data = json.dumps(json_format_data, cls=NumpyEncoder)
