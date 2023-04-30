@@ -43,7 +43,7 @@ class BackgroundController():
         if self.extension == '.mp4':
             self.get_object_from_video(self.results, *args, **kwargs)
         elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:
-            self.get_object_from_image(self.results[0], self.original_frame_data[0], *args, **kwargs)
+            self.get_object_from_image(self.results["0"], self.original_frame_data[0], *args, **kwargs)
 
 
     def get_colormap(self):
@@ -59,7 +59,7 @@ class BackgroundController():
     ]
 
 
-    def get_object_from_image(self, result, original_frame, output_path="output.png", classes='all', save=True, mask=False, background_path=None, alpha=True):
+    def get_object_from_image(self, result, original_frame, output_path="output.png", classes=None, save=True, mask=False, background_path=None, alpha=True):
         """
         This function isolates an object(s) from the background using its masks in a frame.
 
@@ -83,7 +83,7 @@ class BackgroundController():
                 class_id = result["labels"][index]
 
                 # Filter classes if required, and draw the object onto the mask
-                if classes=='all' or class_id in classes:
+                if classes is None or class_id in classes:
                     mask = np.round(mask, decimals=0)
                     mask = mask.astype(int)
                     cv2.fillPoly(mask_image, [mask], (255, 255, 255))
@@ -112,7 +112,7 @@ class BackgroundController():
         return np.zeros_like(background)
 
 
-    def get_object_from_video(self, results, output_path="output.mp4", classes="all", background_path=None):
+    def get_object_from_video(self, results, output_path="output.mp4", classes=None, background_path=None):
         """
         This function creates a video which isolates all the required classes, 
         and removes the background and other irrelvant classes.
@@ -127,7 +127,7 @@ class BackgroundController():
         """
         frames = []
         for index, result in enumerate(tqdm(results)):
-            frame = self.get_object_from_image(results[index], self.original_frame_data[index], 
+            frame = self.get_object_from_image(results[str(index)], self.original_frame_data[index], 
                                                classes=classes, save=False, background_path=background_path)
             frames.append(frame)  
         imageio.mimsave(output_path, frames, fps=24, quality=8, codec='h264') 

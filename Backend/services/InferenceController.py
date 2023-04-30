@@ -9,7 +9,7 @@ class InferenceController():
     #Takes any arguments required by YOLO's predict func and the filepath to the img/vid
     #Returns the results object
     def predict(self, file_path, *args, **kwargs):
-        results = self.model.predict(file_path, save=True, project='YOLO_output', name='video', *args, **kwargs)
+        results = self.model.predict(file_path, save=True, retina_masks=True, project='YOLO_output', name='video', *args, **kwargs)
         return results
 
     #The JSON objects are indexed by their frame no. (only 1 frame for an image)
@@ -17,7 +17,7 @@ class InferenceController():
         json_results = {}
 
         for index, result in enumerate(results):
-            json_results[index] = {
+            json_results[str(index)] = {
                 "boxes": [[round(num, 4) for num in sublist] for sublist in result.boxes.xywh.tolist()] if len(result.boxes.xywh.tolist()) != 0 else None,
                 "masks" : [[[round(float(val), 2)  for val in inner] for inner in mask] for mask in result.masks.xy] if result.masks is not None else None,
                 "scores": [round(score, 4) for score in result.boxes.conf.tolist()] if len(result.boxes.conf.tolist())!=0 else None,
