@@ -30,7 +30,7 @@ class InferenceController():
         self.source = source
    
     def predict(self, *args, **kwargs):
-        results = self.model.predict(self.source, *args, **kwargs)
+        results = self.model.predict(self.source, retina_masks=True, *args, **kwargs)
         return self.results_to_json_format(results), self.get_labels_per_video(results)
 
     def results_to_json_format(self, results):

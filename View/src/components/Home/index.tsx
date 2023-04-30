@@ -2,7 +2,7 @@ import { Box, Grid, Typography, Button} from "@mui/material";
 import bus_pipeline_graphic from '../../assets/bus_pipeline_graphic.png';
 import bus_image from '../../assets/bus.png';
 import seg_bus_image from '../../assets/seg_bus.png';
-import extract_bus_image from '../../assets/extract_bus.jpg';
+import extract_bus_image from '../../assets/extract_bus.png';
 import filtered_bus_image from '../../assets/filtered_bus.png';
 import replaced_bus_image from '../../assets/replaced_bus.png';
 import { useNavigate } from "react-router-dom"
@@ -12,6 +12,7 @@ import type { Container, Engine } from "tsparticles-engine";
 import { loadFull } from "tsparticles";
 import { ImgComparisonSlider } from '@img-comparison-slider/react';
 import './index.css'; 
+
 
 
 const Home = () => {

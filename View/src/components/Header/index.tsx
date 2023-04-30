@@ -1,7 +1,7 @@
 import {AppBar, Toolbar, Typography, Button } from '@mui/material';
 import { Auth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../../firebase-config';
 
 const Header = () => {
@@ -22,7 +22,7 @@ const Header = () => {
     return ( 
         <AppBar position='static' sx={{m: 0, bgcolor:'#0093AB'}}>
             <Toolbar>       
-                <Typography variant="h5" component='div' sx={{flexGrow:1}}>Seer</Typography>
+                <Typography component={Link} to="/" variant="h5" sx={{color:"white", textDecoration:"None", flexGrow:1}}>Seer</Typography>
                 {isAuthenticated ?
                 <>
                 <Typography paddingRight={1}>Welcome, {auth.currentUser?.email}</Typography>
