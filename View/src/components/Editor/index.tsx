@@ -7,7 +7,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import { BackgroundInterface, InferenceParamsInterface } from '../Controller';
 import rhino from '../../assets/rhino.mp4';
 import { useAsyncCallback } from 'react-async-hook';
-import { onAuthStateChanged } from 'firebase/auth';
+import { getIdToken, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase-config';
 import { useNavigate } from "react-router-dom";
 import modelsInfo from '../../assets/models_info.json';
@@ -27,7 +27,8 @@ const formDataFromObject = (obj : {[key : string] : any}) => {
   return data;
 }
 
-const inference = async (video: File, inferenceParams: InferenceParamsInterface) => {
+const inference = async (video: File, inferenceParams: InferenceParamsInterface, accessToken : string) => {
+  console.log(accessToken);
   const model_name = inferenceParams.model;
   const conf_thresh = inferenceParams.conf;
   const iou_thresh = inferenceParams.iou;
@@ -37,12 +38,18 @@ const inference = async (video: File, inferenceParams: InferenceParamsInterface)
                             inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
                             inferenceParams.showBoxes && !inferenceParams.showConf && inferenceParams.showLabels  ? 3 :
                                                                                                                     4 ;
-  const response = await fetch("http://localhost:8000/predict",{
+
+  const headers = new Headers();
+  headers.append('Authentication', `Bearer ${accessToken}`);
+  const request = new Request("http://192.168.10.8:8000/predict",{
     method : "POST", 
-    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes })
+    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes : "['0','2']" }),
+    headers,
   });
-  const blob = await response.blob();
-  return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
+  const response = await fetch(request);
+  return response;
+  // const blob = await response.blob();
+  // return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
 
 }
 
@@ -84,21 +91,26 @@ function Editor() {
   const dropzoneRef = React.createRef<MediaUploadPreviewRef>();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
-
+  
   useEffect(() => {
       onAuthStateChanged(auth, async (user) => {
-          setIsAuthenticated(!!user);
+          setIsAuthenticated(Boolean(user));
       });
   }, [])
 
   const segmentFetch = useAsyncCallback(
-    () => mainFile &&
+    async () => 
+      auth.currentUser &&
+      mainFile &&
       inferenceParams.current &&
-      inference(mainFile, inferenceParams.current)
+      inference(mainFile, inferenceParams.current, await getIdToken(auth.currentUser))
         .then(file => {
-          setmainFile(file);
-          editorState.current = EditorState.Background;
+          console.log(file);
+          // console.log(f)
+          // setmainFile(file);
+          // editorState.current = EditorState.Background;
         }));
+
   const extractFetch = useAsyncCallback(
     () => mainFile &&
           background.current &&
