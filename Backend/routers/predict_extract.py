@@ -16,7 +16,7 @@ router = APIRouter()
 
 class ModelName(str, Enum):
     yolo = "yolov8s-seg"
-    davis = "yolov8s-seg-davis-aug"
+    davis = "yolov8s-seg-davis"
 
 
 class OutputVideoCase(IntEnum):
