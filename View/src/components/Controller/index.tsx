@@ -92,7 +92,7 @@ export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ hand
     showLabels: true,
     showBoxes: true,
     showConf: true,
-    classes: [],
+    classes: modelsInfo['yolov8s-seg'],
   });
 
   const handleinferenceParamsChange = (newValue: any, param: keyof InferenceParamsInterface) => {
@@ -137,7 +137,7 @@ export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ hand
   }
 
   React.useEffect(() => {
-    handleinferenceParamsChange([], 'classes');
+    handleinferenceParamsChange(modelsInfo[inferenceParams.model], 'classes');
   }, [inferenceParams.model]);
 
   return (

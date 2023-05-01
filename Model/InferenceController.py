@@ -37,7 +37,7 @@ class InferenceController():
         json_results = {}
 
         for index, result in enumerate(results):
-            json_results[index] = {
+            json_results[str(index)] = {
                 "boxes": [[round(num, 4) for num in sublist] for sublist in result.boxes.xywh.tolist()] if len(result.boxes.xywh.tolist()) != 0 else None,
                 "masks" : [[[round(float(val), 2)  for val in inner] for inner in mask] for mask in result.masks.xy] if result.masks is not None else None,
                 "scores": [round(score, 4) for score in result.boxes.conf.tolist()] if len(result.boxes.conf.tolist())!=0 else None,

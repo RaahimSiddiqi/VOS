@@ -7,7 +7,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import { BackgroundInterface, InferenceParamsInterface } from '../Controller';
 import rhino from '../../assets/rhino.mp4';
 import { useAsyncCallback } from 'react-async-hook';
-import { onAuthStateChanged } from 'firebase/auth';
+import { getIdToken, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase-config';
 import { useNavigate } from "react-router-dom";
 import modelsInfo from '../../assets/models_info.json';
@@ -27,7 +27,20 @@ const formDataFromObject = (obj : {[key : string] : any}) => {
   return data;
 }
 
-const inference = async (video: File, inferenceParams: InferenceParamsInterface) => {
+const base64ToFile = (base64String : string, mimeType : string, fileName : string) => {
+  const byteCharacters = atob(base64String);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const type = mimeType.startsWith('video') ? 'video/mp4' : mimeType;
+  const blob = new Blob([byteArray], { type });
+  const file = new File([blob], fileName, { type });
+  return file;
+}
+
+const inference = async (video: File, inferenceParams: InferenceParamsInterface, accessToken : string) => {
   const model_name = inferenceParams.model;
   const conf_thresh = inferenceParams.conf;
   const iou_thresh = inferenceParams.iou;
@@ -37,12 +50,18 @@ const inference = async (video: File, inferenceParams: InferenceParamsInterface)
                             inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
                             inferenceParams.showBoxes && !inferenceParams.showConf && inferenceParams.showLabels  ? 3 :
                                                                                                                     4 ;
-  const response = await fetch("http://localhost:8000/predict",{
+
+  const headers = new Headers();
+  headers.append('Authorization', `Bearer ${accessToken}`);
+  const request = new Request("http://192.168.10.8:8000/predict",{
     method : "POST", 
-    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes })
+    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes : "0" }),
+    headers,
   });
-  const blob = await response.blob();
-  return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
+  const response = await fetch(request);
+  return await response.json();
+  // const blob = await response.blob();
+  // return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
 
 }
 
@@ -81,24 +100,32 @@ function Editor() {
   const editorState = React.useRef<EditorState>(EditorState.Inference);
   const inferenceParams = React.useRef<InferenceParamsInterface>();
   const background = React.useRef<BackgroundInterface>();
+  const inferenceResults = React.useRef<any>();
   const dropzoneRef = React.createRef<MediaUploadPreviewRef>();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
-
+  
   useEffect(() => {
       onAuthStateChanged(auth, async (user) => {
-          setIsAuthenticated(!!user);
+          setIsAuthenticated(Boolean(user));
       });
   }, [])
 
   const segmentFetch = useAsyncCallback(
-    () => mainFile &&
+    async () => 
+      auth.currentUser &&
+      mainFile &&
       inferenceParams.current &&
-      inference(mainFile, inferenceParams.current)
-        .then(file => {
-          setmainFile(file);
+      inference(mainFile, inferenceParams.current, await getIdToken(auth.currentUser))
+        .then(response => {
+          console.log(response);
+          const segmentedFile = base64ToFile(response['base64_encoded_string'], response['mime'], `Segmented_${mainFile.name}`);
+          console.log(segmentedFile);
+          setmainFile(segmentedFile);
+          inferenceResults.current = {results : response['results'], classes_detected : response['classes_detected']}
           editorState.current = EditorState.Background;
         }));
+
   const extractFetch = useAsyncCallback(
     () => mainFile &&
           background.current &&
@@ -126,7 +153,7 @@ function Editor() {
                     editorState.current === EditorState.Inference ?
                       <InferenceParamsController handleChange={newValue => inferenceParams.current = newValue} />
                       :
-                      <BackgroundController handleChange={newValue => background.current = newValue} detectedClasses={['person', 'airplane']} />
+                      <BackgroundController handleChange={newValue => background.current = newValue} detectedClasses={inferenceResults.current['classes_detected']!.map((item : any) => modelsInfo[inferenceParams.current!.model][item[0]])} />
                   }
                 </form>
                 {/* <Controller activeFile={activeFile} onSubmit={(file) => console.log(file)} /> */}
