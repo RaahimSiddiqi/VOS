@@ -29,10 +29,10 @@ const sliders = [
     desc : "Images and Videos can often be cluttered with too many objects which may not be relevant. With our application, you can gain the ability to use smart-detection to segment only the relevant objects which you desire."
   },
   {
-    srcBefore: bus_image,
-    srcAfter: extract_bus_image,
+    srcBefore: extract_bus_image,
+    srcAfter: bus_image,
     title: 'Background Removal',
-    desc : "Our application combines object segmentation with image processing techniques to extract the desired object(s) from the rest of the image or video."
+    desc : "Our application uses image processing techniques to extract the desired object(s) from the rest of the image or video."
   },
   {
     srcBefore: bus_image,
