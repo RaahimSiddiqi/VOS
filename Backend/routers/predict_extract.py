@@ -27,8 +27,7 @@ class OutputVideoCase(IntEnum):
     MASK_BOX_LABEL = 4
 
 
-# @router.post("/predict", dependencies=[Depends(firebase_auth)])
-@router.post("/predict")
+@router.post("/predict", dependencies=[Depends(firebase_auth)])
 async def predict_segments(model_name: ModelName = Form(),
                            output_video_case: OutputVideoCase = Form(),
                            file: UploadFile = File(...),
