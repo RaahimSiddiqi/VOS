@@ -4,7 +4,6 @@ import numpy as np
 import imageio
 import os
 from tqdm import tqdm
-from InferenceController import InferenceController
 
 
 class BackgroundController():
@@ -14,7 +13,7 @@ class BackgroundController():
 
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.original_frame_data = self.extract_data_from_video(source)
-        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:      
+        elif self.extension in ['.bmp', '.jpeg', '.jpg', '.png', '.tif', '.webp']:      
             self.original_frame_data = [np.array(Image.open(source))]
 
 
@@ -44,7 +43,7 @@ class BackgroundController():
     def predict(self, *args, **kwargs):
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.get_object_from_video(self.results, *args, **kwargs)
-        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:
+        elif self.extension in ['.bmp', '.jpeg', '.jpg',  '.png', '.tif', '.webp']:
             self.get_object_from_image(self.results["0"], self.original_frame_data[0], *args, **kwargs)
 
 
@@ -126,16 +125,12 @@ class BackgroundController():
             frame = self.get_object_from_image(results[str(index)], self.original_frame_data[index], 
                                                classes=classes, save=False, background_path=background_path)
             frames.append(frame)  
-        imageio.mimsave("output" + self.extension, frames, fps=24, quality=8, codec='h264') 
+        imageio.mimsave("output.mp4", frames, fps=24, quality=8, codec='h264') 
 
 
+def convert_colorcode_to_image(color_code, width=640, height=640, output_path="background.png"):
+     # Create a new image with the specified size and color
+    img = Image.new(mode="RGBA", size=(width, height), color=color_code)
 
-### HOW TO USE
-model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//cute_cat.jpeg"
-
-inferenceController = InferenceController(model_path, source_path)
-results, classes = inferenceController.predict()
-
-backgroundController = BackgroundController(source_path, results)
-backgroundController.predict(background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.jpg")
+    img.save(output_path)
+    return output_path   

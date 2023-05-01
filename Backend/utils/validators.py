@@ -5,11 +5,15 @@ import json
 # To limit the size of the file that the user can send
 MAX_MB = 250
 
+# ALL_YOLO_EXTENSIONS = {
+#     '.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp',
+#     '.pfm', '.asf', '.avi', '.gif', '.m4v', '.mkv', '.mov', '.mp4', '.mpeg',
+#     '.mpg', '.ts', '.wmv', '.webm'
+# }
+
 #These are some of the valid extensions for YOLO that we allow in our app
 VALID_IMG_VID_EXTENSIONS = {
-    '.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp',
-    '.pfm', '.asf', '.avi', '.gif', '.m4v', '.mkv', '.mov', '.mp4', '.mpeg',
-    '.mpg', '.ts', '.wmv', '.webm'
+    '.bmp', '.jpeg', '.jpg', '.png', '.tif', '.webp', '.mp4', '.avi', '.mkv', '.mov'
 }
 
 VALID_BG_IMAGE_EXTENSIONS = {'.jpeg', '.jpg', '.png'}
@@ -30,18 +34,19 @@ def validate_input_file(file: UploadFile):
 
 
 def validate_bg_image_file(bg_image: UploadFile | None):
-    if os.path.splitext(bg_image.filename)[1] not in VALID_BG_IMAGE_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=
-            f"Invalid bg_image file type. Only the following extensions are allowed: {', '.join(VALID_BG_IMAGE_EXTENSIONS)}"
-        )
-    if bg_image.size > MAX_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=
-            f"bg_image file is too large. The maximum allowed size is {MAX_MB} MB."
-        )
+    if bg_image is not None:
+        if os.path.splitext(bg_image.filename)[1] not in VALID_BG_IMAGE_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=
+                f"Invalid bg_image file type. Only the following extensions are allowed: {', '.join(VALID_BG_IMAGE_EXTENSIONS)}"
+            )
+        if bg_image.size > MAX_MB * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=
+                f"bg_image file is too large. The maximum allowed size is {MAX_MB} MB."
+            )
 
 
 def validate_thresholds(conf_thresh: float, iou_thresh: float):
@@ -61,8 +66,9 @@ def validate_filter_classes(filter_classes: str | None):
         try:
             filter_classes = json.loads(filter_classes)
         except Exception as err:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"filter_classes: {type(err).__name__}: {err}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"filter_classes: {type(err).__name__}: {err}")
         if not isinstance(filter_classes,
                           list) or len(filter_classes) == 0 or any(
                               not isinstance(x, int) for x in filter_classes):
@@ -80,8 +86,9 @@ def validate_color_code(color_code: str | None):
         try:
             color_code = json.loads(color_code)
         except Exception as err:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail=f"color_code: {type(err).__name__}: {err}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"color_code: {type(err).__name__}: {err}")
         if not isinstance(color_code, list) or len(color_code) != 4 or any(
                 not isinstance(x, int) for x in color_code):
             raise HTTPException(
@@ -91,6 +98,7 @@ def validate_color_code(color_code: str | None):
             )
         color_code = tuple(color_code)
     return color_code
+
 
 def validate_results(results: str):
     #Check if results can be jsonified and raise exception for invalid format
