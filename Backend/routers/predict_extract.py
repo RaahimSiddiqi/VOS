@@ -8,8 +8,7 @@ import shutil
 import mimetypes
 import base64
 from enum import Enum, IntEnum
-import json
-from fastapi import APIRouter, HTTPException, UploadFile, File, status, Depends, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, status, Depends, Form, BackgroundTasks
 from fastapi.responses import FileResponse
 
 router = APIRouter()
@@ -25,6 +24,11 @@ class OutputVideoCase(IntEnum):
     MASK = 2
     MASK_BOX = 3
     MASK_BOX_LABEL = 4
+
+
+#Background Task
+def remove_file(path: str):
+    os.remove(path)
 
 
 @router.post("/predict", dependencies=[Depends(firebase_auth)])
@@ -75,8 +79,6 @@ async def predict_segments(model_name: ModelName = Form(),
         # Encode videos to h264 since it's widely compatible
         if "video" in media_type:
             out_file_path = h264_encoder(out_file_path)
-            # Update media type
-            media_type = "video/h264"
 
         # Encode the img/vid file into a string to be able to be sent as JSON
         with open(out_file_path, "rb") as output_file:
@@ -99,19 +101,9 @@ async def predict_segments(model_name: ModelName = Form(),
         shutil.rmtree("YOLO_output")
 
 
-#################################################################################
-#################################################################################
-#################################################################################
-#################################################################################
-#################################################################################
-#################################################################################
-#################################################################################
-#################################################################################
-
-
-# @router.post("/extract", dependencies=[Depends(firebase_auth)])
-@router.post("/extract")
-async def extract_segments(file: UploadFile = File(...),
+@router.post("/extract", dependencies=[Depends(firebase_auth)])
+async def extract_segments(background_tasks: BackgroundTasks,
+                           file: UploadFile = File(...),
                            bg_image: UploadFile | None = File(None),
                            color_code: str | None = Form(None),
                            filter_classes: str | None = Form(None),
@@ -131,14 +123,15 @@ async def extract_segments(file: UploadFile = File(...),
         # Initialise all required file paths
         file_path = file.filename
         background_img_path = "background.png"
-
         # Guess the MIME type of the input file to decide the ext of the output file
         media_type = mimetypes.guess_type(file_path)[0]
         if "video" in media_type:
+            media_type = "video/mp4"
             ext = ".mp4"
         elif "image" in media_type:
+            media_type = "image/png"
             ext = ".png"
-        out_file_path = f"output_file{ext}"
+        out_file_path = f"output{ext}"
 
         # Save the img/vid input file
         with open(file_path, "wb") as buffer:
@@ -147,7 +140,8 @@ async def extract_segments(file: UploadFile = File(...),
         #If the bg_image was received then store it
         if bg_image:
             with open(background_img_path, "wb") as buffer:
-                buffer.write(await file.read())
+                buffer.write(await bg_image.read())
+
         #If color_code was given then create an image from it and store it
         elif color_code:
             convert_colorcode_to_image(color_code,
@@ -159,41 +153,33 @@ async def extract_segments(file: UploadFile = File(...),
         # Uses the received vid/img file and the results object as input
         backgroundController = BackgroundController(file_path, results)
 
-        #TODO check if filter_classes need to be validated, I assume it automatically accepts only a list of ints or null
-        #      , but do not accept list of anything else or empty list or some other datatype then a list
-
-        # TODO: Just call the predict function once and pass all needed params, test all cases and file formats
-        backgroundController.predict(output_path=out_file_path,
-                                     classes=filter_classes,
+        # Uses filter classes and background image if received from the user
+        backgroundController.predict(classes=filter_classes,
                                      background_path=background_img_path)
 
         # Encode videos to h264 since it's widely compatible
         if "video" in media_type:
             out_file_path = h264_encoder(out_file_path)
-            # Update media type
-            media_type = "video/h264"
 
-        response = FileResponse(path=out_file_path)
-        return response
+        #If the output file is successfully returned then it will be deleted from the server too
+        background_tasks.add_task(remove_file, out_file_path)
+        return FileResponse(path=out_file_path,
+                            media_type=media_type,
+                            headers={
+                                "Content-Disposition":
+                                f"attachment; filename={out_file_path}"
+                            })
 
     except Exception as err:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail=str(err))
+
+    # Runs right before the return statement or if an exception occurred
     finally:
+        # remove input file if it was stored
         if file_path is not None and os.path.exists(file_path):
             os.remove(file_path)
+        # remove bg_image file if it was stored
         if background_img_path is not None and os.path.exists(
                 background_img_path):
             os.remove(background_img_path)
-
-        #TODO: THE FILE IS BEING REMOVED BEFORE BEING SENT IN RESPONSE FIX THAT
-
-        if out_file_path is not None and os.path.exists(out_file_path):
-            os.remove(out_file_path)
-
-
-@router.post("/try")
-async def try_try(filter_classes: str | None = Form(None)):
-    filter_classes = validate_filter_classes(filter_classes)
-    print(filter_classes)
-    return filter_classes
