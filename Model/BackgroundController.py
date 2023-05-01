@@ -138,11 +138,11 @@ def convert_colorcode_to_image(color_code, width=640, height=640, output_path="b
 
 
 ### HOW TO USE
-model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg-davis.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input10.mp4"
+model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input13.mp4"
 
 inferenceController = InferenceController(model_path, source_path)
-results, classes = inferenceController.predict()
+results, classes = inferenceController.predict(save=True)
 
 backgroundController = BackgroundController(source_path, results)
 backgroundController.predict()
