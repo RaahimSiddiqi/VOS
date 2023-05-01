@@ -13,7 +13,7 @@ class BackgroundController():
 
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.original_frame_data = self.extract_data_from_video(source)
-        elif self.extension in ['.bmp', '.jpeg', '.jpg', '.png', '.tif', '.webp']:      
+        elif self.extension in ['.bmp', '.jpeg', '.jpg', '.png', '.webp']:      
             self.original_frame_data = [np.array(Image.open(source))]
 
 
@@ -43,7 +43,7 @@ class BackgroundController():
     def predict(self, *args, **kwargs):
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.get_object_from_video(self.results, *args, **kwargs)
-        elif self.extension in ['.bmp', '.jpeg', '.jpg',  '.png', '.tif', '.webp']:
+        elif self.extension in ['.bmp', '.jpeg', '.jpg',  '.png', '.webp']:
             self.get_object_from_image(self.results["0"], self.original_frame_data[0], *args, **kwargs)
 
 
@@ -103,7 +103,7 @@ class BackgroundController():
                 image.save("output.png")
             return np.array(image)
         if background_path:
-            return np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
+            return cv2.cvtColor(np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0]))), cv2.COLOR_RGB2RGBA)
         return np.zeros_like(background)
 
 

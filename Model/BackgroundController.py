@@ -14,7 +14,7 @@ class BackgroundController():
 
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.original_frame_data = self.extract_data_from_video(source)
-        elif self.extension in ['.bmp', '.jpeg', '.jpg', '.png', '.tif', '.webp']:      
+        elif self.extension in ['.bmp', '.jpeg', '.jpg', '.png', '.webp']:      
             self.original_frame_data = [np.array(Image.open(source))]
 
 
@@ -44,7 +44,7 @@ class BackgroundController():
     def predict(self, *args, **kwargs):
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.get_object_from_video(self.results, *args, **kwargs)
-        elif self.extension in ['.bmp', '.jpeg', '.jpg',  '.png', '.tif', '.webp']:
+        elif self.extension in ['.bmp', '.jpeg', '.jpg',  '.png', '.webp']:
             self.get_object_from_image(self.results["0"], self.original_frame_data[0], *args, **kwargs)
 
 
@@ -104,7 +104,7 @@ class BackgroundController():
                 image.save("output.png")
             return np.array(image)
         if background_path:
-            return np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0])))
+            return cv2.cvtColor(np.array(Image.open(background_path).resize((original_frame.shape[1], original_frame.shape[0]))), cv2.COLOR_RGB2RGBA)
         return np.zeros_like(background)
 
 
@@ -139,10 +139,10 @@ def convert_colorcode_to_image(color_code, width=640, height=640, output_path="b
 
 ### HOW TO USE
 model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input13.mp4"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input9.avi"
 
 inferenceController = InferenceController(model_path, source_path)
 results, classes = inferenceController.predict(save=True)
 
 backgroundController = BackgroundController(source_path, results)
-backgroundController.predict()
+backgroundController.predict(classes=[16], background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//fire.jpg")
