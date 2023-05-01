@@ -29,8 +29,7 @@ const MediaUploadPreview = React.forwardRef<MediaUploadPreviewRef, MediaUploadPr
             { "image/png": [".png"], 
               "image/jpeg": [".jpg", ".jpeg"], 
               "image/jpg": [".jpg", ".jpeg"],
-              "image/bmp" : [".bmp"],
-              "image/webp" : [".webp"], }),
+              "image/bmp" : [".bmp"]}),
             ...(accept.includes("video") && 
             { "video/mp4": [".mp4"],
               "video/x-msvideo" : [".avi"],
