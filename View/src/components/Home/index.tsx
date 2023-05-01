@@ -20,25 +20,25 @@ const sliders = [
     srcBefore: bus_image,
     srcAfter: seg_bus_image,
     title: 'Object Detection and Segmentation',
-    desc : "Fast, precise and easy to train, YOLOv5 has a long and successful history of real time object detection. Treat YOLOv5 as a university where you'll feed your model information for it to learn from and grow into one integrated tool. With YOLOv5 and its  Pytorch implementation, you can get started with less than 6 lines of code."
+    desc : "Gain the ability to detect significant objects in a video or image, and segment the occupied area of that object. Our models can detect over 80 different types of Objects!"
   },
   {
     srcBefore: seg_bus_image,
     srcAfter: filtered_bus_image,
     title: 'Filtering by Object Class',
-    desc : "Fast, precise and easy to train, YOLOv5 has a long and successful history of real time object detection. Treat YOLOv5 as a university where you'll feed your model information for it to learn from and grow into one integrated tool. With YOLOv5 and its  Pytorch implementation, you can get started with less than 6 lines of code."
+    desc : "Images and Videos can often be cluttered with too many objects which may not be relevant. With our application, you can gain the ability to use smart-detection to segment only the relevant objects which you desire."
   },
   {
     srcBefore: bus_image,
     srcAfter: extract_bus_image,
     title: 'Background Removal',
-    desc : "Fast, precise and easy to train, YOLOv5 has a long and successful history of real time object detection. Treat YOLOv5 as a university where you'll feed your model information for it to learn from and grow into one integrated tool. With YOLOv5 and its  Pytorch implementation, you can get started with less than 6 lines of code."
+    desc : "Our application combines object segmentation with image processing techniques to extract the desired object(s) from the rest of the image or video."
   },
   {
     srcBefore: bus_image,
     srcAfter: replaced_bus_image,
     title: 'Background Replacement',
-    desc : "Fast, precise and easy to train, YOLOv5 has a long and successful history of real time object detection. Treat YOLOv5 as a university where you'll feed your model information for it to learn from and grow into one integrated tool. With YOLOv5 and its  Pytorch implementation, you can get started with less than 6 lines of code."
+    desc : "As an add-on to background removal, we also offer background replacement in both videos and images."
   }
 ];
 
@@ -139,7 +139,7 @@ const Home = () => {
                    <Box p={2} maxWidth={1000} mx='auto' mt='auto' mb='auto'>
 
                         <Typography variant="h2" gutterBottom>Seer, The Ultimate VOS Application</Typography>
-                        <Typography variant='h5' gutterBottom>Fast, precise and easy to train, YOLOv5 has a long and successful history of real time object detection. Treat YOLOv5 as a university where you'll feed your model information for it to learn from and grow into one integrated tool. With YOLOv5 and its  Pytorch implementation, you can get started with less than 6 lines of code.</Typography>
+                        <Typography variant='h5' gutterBottom>Fast, precise and easy to train, YOLO has a long and successful history of real time object detection and segmentation. Our application builds upon YOLO, making it easier for end-users to perform tasks like object segmentation, background removal, and background replacement in just a few clicks.</Typography>
                         <Button sx={{p:2, mt:1}} variant="contained" onClick={() => navigate("/editor")}><Typography fontSize={18}>Try Now!</Typography></Button>
                     </Box>
                 </Grid>   

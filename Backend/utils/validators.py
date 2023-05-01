@@ -13,7 +13,7 @@ MAX_MB = 250
 
 #These are some of the valid extensions for YOLO that we allow in our app
 VALID_IMG_VID_EXTENSIONS = {
-    '.bmp', '.jpeg', '.jpg', '.png', '.tif', '.webp', '.mp4', '.avi', '.mkv', '.mov'
+    '.bmp', '.jpeg', '.jpg', '.png', '.webp', '.mp4', '.avi', '.mkv', '.mov'
 }
 
 VALID_BG_IMAGE_EXTENSIONS = {'.jpeg', '.jpg', '.png'}
