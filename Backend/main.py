@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 import firebase_admin
-from routers import predict
+from routers import predict_extract
 from fastapi.middleware.cors import CORSMiddleware
 
 # Use the service account keys to create a credentials.Certificate to connect to firebase
@@ -18,4 +18,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(predict.router)
+app.include_router(predict_extract.router)

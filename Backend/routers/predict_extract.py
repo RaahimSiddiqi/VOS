@@ -1,28 +1,18 @@
 from services.InferenceController import InferenceController
 from services.BackgroundController import BackgroundController, convert_colorcode_to_image
 from utils.auth import firebase_auth
+from utils.validators import validate_filter_classes, validate_input_file, validate_thresholds, validate_color_code, validate_bg_image_file, validate_results
+from utils.encoder import h264_encoder
 import os
 import shutil
 import mimetypes
 import base64
-import imageio
-from typing import List, Optional, Annotated
 from enum import Enum, IntEnum
 import json
 from fastapi import APIRouter, HTTPException, UploadFile, File, status, Depends, Form
 from fastapi.responses import FileResponse
 
 router = APIRouter()
-
-# To limit the size of the file that the user can send
-MAX_MB = 250
-
-#valid extensions for YOLO
-VALID_EXTENSIONS = {
-    '.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp',
-    '.pfm', '.asf', '.avi', '.gif', '.m4v', '.mkv', '.mov', '.mp4', '.mpeg',
-    '.mpg', '.ts', '.wmv', '.webm'
-}
 
 
 class ModelName(str, Enum):
@@ -44,32 +34,11 @@ async def predict_segments(model_name: ModelName = Form(),
                            file: UploadFile = File(...),
                            conf_thresh: float = Form(0.25),
                            iou_thresh: float = Form(0.7),
-                           filter_classes: List[int] | None = Form(None)):
+                           filter_classes: str | None = Form(None)):
 
-    if os.path.splitext(file.filename)[1] not in VALID_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=
-            f"Invalid file type. Only the following extensions are allowed: {', '.join(VALID_EXTENSIONS)}"
-        )
-    if file.size > MAX_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=
-            f"File is too large. The maximum allowed size is {MAX_MB} MB.")
-    if conf_thresh < 0.0 or conf_thresh > 1.0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Confidence threshold must be in the range 0 to 1 inclusive"
-        )
-    if iou_thresh < 0.0 or conf_thresh > 1.0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="IOU threshold must be in the range 0 to 1 inclusive")
-    if filter_classes is not None and len(filter_classes) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="filtered_classes must be a list of ints or null")
+    validate_input_file(file)
+    validate_thresholds(conf_thresh, iou_thresh)
+    filter_classes = validate_filter_classes(filter_classes)
 
     try:
         filename = file.filename
@@ -106,21 +75,9 @@ async def predict_segments(model_name: ModelName = Form(),
 
         # Encode videos to h264 since it's widely compatible
         if "video" in media_type:
-            # Define a path for the H.264 video
-            h264_file_path = os.path.join(out_dir, "h264encodedfile.mp4")
-            # Convert video to H.264
-            reader = imageio.get_reader(out_file_path)
-            writer = imageio.get_writer(h264_file_path,
-                                        codec="h264",
-                                        fps=reader.get_meta_data()['fps'])
-            for frame in reader:
-                writer.append_data(frame)
-            reader.close()
-            writer.close()
+            out_file_path = h264_encoder(out_file_path)
             # Update media type
             media_type = "video/h264"
-            # Update the output file path to be the one for the H264 encoded video
-            out_file_path = h264_file_path
 
         # Encode the img/vid file into a string to be able to be sent as JSON
         with open(out_file_path, "rb") as output_file:
@@ -139,7 +96,7 @@ async def predict_segments(model_name: ModelName = Form(),
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail=str(err))
     finally:
-        shutil.os.remove(filename)
+        os.remove(filename)
         shutil.rmtree("YOLO_output")
 
 
@@ -157,36 +114,19 @@ async def predict_segments(model_name: ModelName = Form(),
 @router.post("/extract")
 async def extract_segments(file: UploadFile = File(...),
                            bg_image: UploadFile | None = File(None),
-                           color_code: tuple[int, int, int, int] | None = Form(None),
-                           filter_classes: List[int] | None = Form(None),
+                           color_code: str | None = Form(None),
+                           filter_classes: str | None = Form(None),
                            results: str = Form()):
 
-    if os.path.splitext(file.filename)[1] not in VALID_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=
-            f"Invalid file type. Only the following extensions are allowed: {', '.join(VALID_EXTENSIONS)}"
-        )
-    if file.size > MAX_MB * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=
-            f"File is too large. The maximum allowed size is {MAX_MB} MB.")
-    if filter_classes is not None and len(filter_classes) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="filtered_classes must be a list of ints or null")
+    validate_input_file(file)
+    validate_bg_image_file(bg_image)
+    color_code = validate_color_code(color_code)
+    filter_classes = validate_filter_classes(filter_classes)
     if color_code is not None and bg_image is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Can either send a color_code or a bg_image, but not both")
-
-    #Check if results can be jsonified and raise exception for invalid format
-    try:
-        results = json.loads(results)
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=str(e))
+    results = validate_results(results)
 
     try:
         # Initialise all required file paths
@@ -196,9 +136,9 @@ async def extract_segments(file: UploadFile = File(...),
         # Guess the MIME type of the input file to decide the ext of the output file
         media_type = mimetypes.guess_type(file_path)[0]
         if "video" in media_type:
-            ext=".mp4"
+            ext = ".mp4"
         elif "image" in media_type:
-            ext=".png" 
+            ext = ".png"
         out_file_path = f"output_file{ext}"
 
         # Save the img/vid input file
@@ -215,13 +155,13 @@ async def extract_segments(file: UploadFile = File(...),
                                        output_path=background_img_path)
         #Else dont use a background image
         else:
-            background_img_path=None
+            background_img_path = None
 
         # Uses the received vid/img file and the results object as input
         backgroundController = BackgroundController(file_path, results)
-        
+
         #TODO check if filter_classes need to be validated, I assume it automatically accepts only a list of ints or null
-        #      , but do not accept list of anything else or empty list or some other datatype then a list 
+        #      , but do not accept list of anything else or empty list or some other datatype then a list
 
         # TODO: Just call the predict function once and pass all needed params, test all cases and file formats
         backgroundController.predict(output_path=out_file_path,
@@ -230,17 +170,9 @@ async def extract_segments(file: UploadFile = File(...),
 
         # Encode videos to h264 since it's widely compatible
         if "video" in media_type:
-            # Define a path for the H.264 video
-            h264_file_path = "h264encodedfile.mp4"
-            # Convert video to H.264
-            reader = imageio.get_reader(out_file_path)
-            writer = imageio.get_writer(h264_file_path, codec="h264", fps=reader.get_meta_data()['fps'])
-            for frame in reader:
-                writer.append_data(frame)
-            reader.close()
-            writer.close()
-            # Update the output file path to be the one for the H264 encoded video
-            out_file_path=h264_file_path
+            out_file_path = h264_encoder(out_file_path)
+            # Update media type
+            media_type = "video/h264"
 
         response = FileResponse(path=out_file_path)
         return response
@@ -251,15 +183,18 @@ async def extract_segments(file: UploadFile = File(...),
     finally:
         if file_path is not None and os.path.exists(file_path):
             os.remove(file_path)
-        if background_img_path is not None and os.path.exists(background_img_path):
+        if background_img_path is not None and os.path.exists(
+                background_img_path):
             os.remove(background_img_path)
-        
+
         #TODO: THE FILE IS BEING REMOVED BEFORE BEING SENT IN RESPONSE FIX THAT
 
         if out_file_path is not None and os.path.exists(out_file_path):
             os.remove(out_file_path)
 
+
 @router.post("/try")
-async def try_try(form_data: tuple[int, int, int, int] | None = Form(None)):
-    print(form_data)
-    return None
+async def try_try(filter_classes: str | None = Form(None)):
+    filter_classes = validate_filter_classes(filter_classes)
+    print(filter_classes)
+    return filter_classes
