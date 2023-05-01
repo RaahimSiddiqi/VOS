@@ -4,7 +4,7 @@ import Dropzone from 'react-dropzone'
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import ImageIcon from '@mui/icons-material/Image';
 import { MediaUploadPreview } from '../../components';
-import { RgbaStringColorPicker } from "react-colorful";
+import { RgbaColor, RgbaColorPicker } from "react-colorful";
 import modelsInfo from '../../assets/models_info.json';
 
 export interface InferenceParamsInterface {
@@ -18,7 +18,7 @@ export interface InferenceParamsInterface {
 }
 export interface BackgroundInterface {
   file: File | undefined;
-  color: string;
+  color: RgbaColor;
   classes: string[];
 }
 
@@ -29,8 +29,8 @@ interface BackgroundControllerProps {
 export const BackgroundController: React.FC<BackgroundControllerProps> = ({ handleChange, detectedClasses }) => {
   const [background, setbackground] = React.useState<BackgroundInterface>({
     file: undefined,
-    color: 'rgba(0,0,0,1)',
-    classes: []
+    color: { r : 0, g : 0, b : 0, a : 1},
+    classes: detectedClasses
   });
 
 
@@ -41,7 +41,7 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({ hand
   }
 
   React.useEffect(() => {
-    handlebackgroundChange([], 'classes');
+    handlebackgroundChange(detectedClasses, 'classes');
   }, [detectedClasses]);
 
   return (
@@ -57,10 +57,11 @@ export const BackgroundController: React.FC<BackgroundControllerProps> = ({ hand
             uploadIcon={<ImageIcon />}
             style={{ padding: 10, width: 200, height: 100, border: 'dashed gray 1px', borderRadius: '6%' }}
           />
+          <Button onClick={() => handlebackgroundChange(undefined, 'file')}>Remove</Button>
         </li>
         <li>
           <Typography variant='body1' gutterBottom>Choose a color</Typography>
-          <RgbaStringColorPicker color={background.color} onChange={(newColor) => handlebackgroundChange(newColor, 'color')} />
+          <RgbaColorPicker color={background.color} onChange={newColor => handlebackgroundChange(newColor, 'color')} />
         </li>
       </ul>
       <Typography variant='h6' gutterBottom >Extract</Typography>
@@ -87,8 +88,8 @@ interface InferenceParamsProps {
 export const InferenceParamsController: React.FC<InferenceParamsProps> = ({ handleChange }) => {
   const [inferenceParams, setinferenceParams] = React.useState<InferenceParamsInterface>({
     model: 'yolov8s-seg',
-    conf: 0.5,
-    iou: 0.5,
+    conf: 0.3,
+    iou: 0.7,
     showLabels: true,
     showBoxes: true,
     showConf: true,
