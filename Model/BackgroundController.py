@@ -14,7 +14,7 @@ class BackgroundController():
 
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.original_frame_data = self.extract_data_from_video(source)
-        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:      
+        elif self.extension in ['.bmp', '.jpeg', '.jpg', '.png', '.tif', '.webp']:      
             self.original_frame_data = [np.array(Image.open(source))]
 
 
@@ -44,7 +44,7 @@ class BackgroundController():
     def predict(self, *args, **kwargs):
         if self.extension in ['.mp4', '.avi', '.mkv', '.mov']:
             self.get_object_from_video(self.results, *args, **kwargs)
-        elif self.extension in ['.bmp', '.dng', '.jpeg', '.jpg', '.mpo', '.png', '.tif', '.tiff', '.webp','.pfm']:
+        elif self.extension in ['.bmp', '.jpeg', '.jpg',  '.png', '.tif', '.webp']:
             self.get_object_from_image(self.results["0"], self.original_frame_data[0], *args, **kwargs)
 
 
@@ -126,16 +126,16 @@ class BackgroundController():
             frame = self.get_object_from_image(results[str(index)], self.original_frame_data[index], 
                                                classes=classes, save=False, background_path=background_path)
             frames.append(frame)  
-        imageio.mimsave("output" + self.extension, frames, fps=24, quality=8, codec='h264') 
+        imageio.mimsave("output.mp4", frames, fps=24, quality=8, codec='h264') 
 
 
 
 ### HOW TO USE
-model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg.pt"
-source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//images//cute_cat.jpeg"
+model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg-davis.pt"
+source_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//videos//input10.mp4"
 
 inferenceController = InferenceController(model_path, source_path)
 results, classes = inferenceController.predict()
 
 backgroundController = BackgroundController(source_path, results)
-backgroundController.predict(background_path="C://Users//RaahimSiddiqi//Desktop//Code//VSC//streetjpg.jpg")
+backgroundController.predict()
