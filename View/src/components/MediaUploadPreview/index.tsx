@@ -25,8 +25,17 @@ const MediaUploadPreview = React.forwardRef<MediaUploadPreviewRef, MediaUploadPr
     const { getRootProps, getInputProps, open } = useDropzone({
         onDrop: acceptedFiles => acceptedFiles && setfile(acceptedFiles[0]),
         accept: {
-            ...(accept.includes("image") && { "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"], "image/jpg": [".jpg", ".jpeg"] }),
-            ...(accept.includes("video") && { "video/mp4": [".mp4"] })
+            ...(accept.includes("image") && 
+            { "image/png": [".png"], 
+              "image/jpeg": [".jpg", ".jpeg"], 
+              "image/jpg": [".jpg", ".jpeg"],
+              "image/bmp" : [".bmp"],
+              "image/webp" : [".webp"], }),
+            ...(accept.includes("video") && 
+            { "video/mp4": [".mp4"],
+              "video/x-msvideo" : [".avi"],
+              "video/x-matroska" : [".mkv"], 
+              "video/quicktime" : [".mov"]})
         },
         noClick,
         noDrag
@@ -49,12 +58,12 @@ const MediaUploadPreview = React.forwardRef<MediaUploadPreviewRef, MediaUploadPr
                     src={URL.createObjectURL(file)}
                     autoPlay
                     controls
-                    style={{ objectFit: "contain", width : "100%" }}
+                    style={{ objectFit: "contain", maxWidth : "100%", maxHeight : "100%" }}
                 />
             ) : (
                 <img
                     src={URL.createObjectURL(file)}
-                    style={{ objectFit: "contain", maxWidth: "100%" }}
+                    style={{ objectFit: "contain", maxWidth: "100%", maxHeight : "100%" }}
                 />
             )}
         </div>

@@ -46,37 +46,37 @@ const inference = async (video: File, inferenceParams: InferenceParamsInterface,
   const iou_thresh = inferenceParams.iou;
   const filter_classes = `[${ (inferenceParams.classes.map(label => modelsInfo[model_name].indexOf(label))).join(', ')}]`;
   const file = video;
-  const output_video_case =!inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 1 :
-                            inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
-                            inferenceParams.showBoxes && !inferenceParams.showConf && inferenceParams.showLabels  ? 3 :
+  const output_video_case = inferenceParams.showBoxes &&  inferenceParams.showConf &&  inferenceParams.showLabels ? 1 :
+                           !inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
+                            inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 3 :
                                                                                                                     4 ;
 
-  const headers = new Headers();
-  headers.append('Authorization', `Bearer ${accessToken}`);
-  const request = new Request(`http://${SERVER_IP}:${SERVER_PORT}/predict`,{
-    method : "POST", 
-    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes : filter_classes }),
-    headers,
-  });
+  const method = "POST";
+  const body = { model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes };
+  const headers = new Headers({'Authorization': `Bearer ${accessToken}`});
+  const request = new Request(`http://${SERVER_IP}:${SERVER_PORT}/predict`,{ method, body : formDataFromObject(body), headers });
   const response = await fetch(request);
+  console.log("Inference body =>", body);
   return await response.json();
-  // const blob = await response.blob();
-  // return new File([blob], `Segmented_${file.name}`, { type: 'video/mp4' });
 
 }
 
-const backgroundChange = async(video : File, background : BackgroundInterface) => {
-  return new Promise<File>((resolve, reject) => {
-    setTimeout(() => {
-      fetch(rhino)
-        .then(response => response.blob())
-        .then(blob => {
-          const file = new File([blob], 'rhino.mp4', { type: 'video/mp4' });
-          resolve(file);
-        })
-        .catch(error => reject(error));
-    }, 3000);
-  });
+const backgroundChange = async(video : File, inferenceParams: InferenceParamsInterface, results : any, background : BackgroundInterface, accessToken : string) => {
+  results = JSON.stringify(results);
+  const file = video;
+  const bg_image = background.file;
+  const {r, g, b, a} = background.color;
+  const filter_classes = `[${ (background.classes.map(label => modelsInfo[inferenceParams.model].indexOf(label))).join(', ')}]`
+  const color_code = `[${r},${g},${b},${Math.floor(a * 255)}]`;
+
+  const method = "POST";
+  const headers = new Headers({'Authorization': `Bearer ${accessToken}`});
+  const body = { file, ...(bg_image ? {bg_image} : {color_code}), results, filter_classes};
+
+  const request = new Request(`http://${SERVER_IP}:${SERVER_PORT}/extract`,{ method, body: formDataFromObject(body), headers});
+  const response = await fetch(request);
+  console.log("Extract body =>", body);
+  return response;
 }
 /*
   1) Upload media.
@@ -95,7 +95,7 @@ enum EditorState {
 }
 
 function Editor() {
-  const [mainFile, setmainFile] = useState<File>();
+  const mainFile = React.useRef<File>();
   const [activeFile, setactiveFile] = useState<File>();
   const editorState = React.useRef<EditorState>(EditorState.Inference);
   const inferenceParams = React.useRef<InferenceParamsInterface>();
@@ -111,26 +111,38 @@ function Editor() {
       });
   }, [])
 
+  const onUpload = (file : File | undefined) => {
+    console.log("Uploaded => ", file);
+    mainFile.current = file;
+    setactiveFile(file);
+  } 
+
   const segmentFetch = useAsyncCallback(
     async () => 
       auth.currentUser &&
-      mainFile &&
+      mainFile.current &&
       inferenceParams.current &&
-      inference(mainFile, inferenceParams.current, await getIdToken(auth.currentUser))
+      inference(mainFile.current, inferenceParams.current, await getIdToken(auth.currentUser))
         .then(response => {
           console.log(response);
-          const segmentedFile = base64ToFile(response['base64_encoded_string'], response['mime'], `Segmented_${mainFile.name}`);
-          console.log(segmentedFile);
-          setmainFile(segmentedFile);
+          const segmentedFile = base64ToFile(response['base64_encoded_string'], response['mime'], `Segmented_${mainFile.current!.name}`);
           inferenceResults.current = {results : response['results'], classes_detected : response['classes_detected']}
           editorState.current = EditorState.Background;
+          setactiveFile(segmentedFile);
         }));
 
   const extractFetch = useAsyncCallback(
-    () => mainFile &&
-          background.current &&
-          backgroundChange(mainFile, background.current)
-          .then(file => setmainFile(file))
+    async () => auth.currentUser &&
+                mainFile.current &&
+                inferenceParams.current &&
+                inferenceResults.current &&
+                background.current &&
+                backgroundChange(mainFile.current, inferenceParams.current, inferenceResults.current['results'], background.current, await getIdToken(auth.currentUser))
+                .then(async(response) =>{
+                  const blob = await response.blob();
+
+                  setactiveFile(new File([blob], `Extracted_${mainFile.current!.name}`, {type : response.headers.get('content-type')!}))
+                })
   );
   return (
     <>
@@ -139,7 +151,7 @@ function Editor() {
         <Paper sx={{ mx: 'auto', padding: 3, my: 1 }} elevation={4}>
           <Backdrop
             sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-            open={segmentFetch.loading}
+            open={editorState.current === EditorState.Inference ?  segmentFetch.loading : extractFetch.loading}
           >
             <CircularProgress color="inherit" />
           </Backdrop>
@@ -161,25 +173,25 @@ function Editor() {
             </Grid>
             <Grid item xs={12} md={8}>
               <MediaUploadPreview
-                file={mainFile}
-                setfile={setmainFile}
+                file={activeFile}
+                setfile={onUpload}
                 ref={dropzoneRef}
                 accept={['video', 'image']}
                 uploadIcon={<ImageIcon fontSize='large' />}
                 uploadText={"Drag 'n Drop or Click to upload media"}
-                noClick={Boolean(mainFile)}
-                noDrag={Boolean(mainFile)}
-                style={{ width: '100%', height: '100%', border: 'dashed gray 1px', borderRadius: '4px' }}
+                noClick={Boolean(activeFile)}
+                noDrag={Boolean(activeFile)}
+                style={{ width: '100%', height: '100%', border: 'dashed gray 1px', borderRadius: '4px', maxHeight : 712 }}
               />
             </Grid>
           </Grid>
-          {mainFile &&
+          {activeFile &&
             <>
               <Box mt={3} display='flex' justifyContent='space-between'>
                 {editorState.current === EditorState.Inference ?            
                   <Button variant='contained' disabled={segmentFetch.loading} onClick={segmentFetch.execute}>Segment</Button>
                   :
-                  <Button variant='contained' disabled={segmentFetch.loading} onClick={segmentFetch.execute}>Extract</Button>
+                  <Button variant='contained' disabled={extractFetch.loading} onClick={extractFetch.execute}>Extract</Button>
                 }
                 <Box>
                   <Button variant='outlined' sx={{ mr: 2 }}
@@ -187,7 +199,7 @@ function Editor() {
                       dropzoneRef.current?.openFileDialog();
                       editorState.current = EditorState.Inference;
                     }}>Change Media</Button>
-                  <Button variant='contained' onClick={() => download(mainFile)}>Save Media</Button>
+                  <Button variant='contained' onClick={() => download(activeFile)}>Save Media</Button>
                 </Box>
               </Box>
             </>
