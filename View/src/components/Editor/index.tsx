@@ -11,7 +11,7 @@ import { getIdToken, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase-config';
 import { useNavigate } from "react-router-dom";
 import modelsInfo from '../../assets/models_info.json';
-
+import { SERVER_IP, SERVER_PORT } from '../../config';
 
 const download = (file: File) => {
   const anchor = document.createElement('a');
@@ -44,7 +44,7 @@ const inference = async (video: File, inferenceParams: InferenceParamsInterface,
   const model_name = inferenceParams.model;
   const conf_thresh = inferenceParams.conf;
   const iou_thresh = inferenceParams.iou;
-  const filter_classes = inferenceParams.classes.map(label => modelsInfo[model_name].indexOf(label));
+  const filter_classes = `[${ (inferenceParams.classes.map(label => modelsInfo[model_name].indexOf(label))).join(', ')}]`;
   const file = video;
   const output_video_case =!inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 1 :
                             inferenceParams.showBoxes && !inferenceParams.showConf && !inferenceParams.showLabels ? 2 :
@@ -53,9 +53,9 @@ const inference = async (video: File, inferenceParams: InferenceParamsInterface,
 
   const headers = new Headers();
   headers.append('Authorization', `Bearer ${accessToken}`);
-  const request = new Request("http://192.168.10.8:8000/predict",{
+  const request = new Request(`http://${SERVER_IP}:${SERVER_PORT}/predict`,{
     method : "POST", 
-    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes : "0" }),
+    body: formDataFromObject({ model_name, output_video_case, file, conf_thresh, iou_thresh, filter_classes : filter_classes }),
     headers,
   });
   const response = await fetch(request);
@@ -136,7 +136,7 @@ function Editor() {
     <>
     {isAuthenticated ?
       <>
-        <Paper sx={{ mx: 'auto', padding: 5, my: 2 }} elevation={4}>
+        <Paper sx={{ mx: 'auto', padding: 3, my: 1 }} elevation={4}>
           <Backdrop
             sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
             open={segmentFetch.loading}
@@ -144,7 +144,7 @@ function Editor() {
             <CircularProgress color="inherit" />
           </Backdrop>
 
-          <Typography variant='h4' gutterBottom>Image/Video segmentation</Typography>
+          {/* <Typography variant='h4' gutterBottom>Image/Video segmentation</Typography> */}
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
               <Paper variant='outlined'>

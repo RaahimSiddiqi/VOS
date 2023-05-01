@@ -129,6 +129,13 @@ class BackgroundController():
         imageio.mimsave("output.mp4", frames, fps=24, quality=8, codec='h264') 
 
 
+def convert_colorcode_to_image(color_code, width=640, height=640, output_path="background.png"):
+     # Create a new image with the specified size and color
+    img = Image.new(mode="RGBA", size=(width, height), color=color_code)
+
+    img.save(output_path)
+    return output_path   
+
 
 ### HOW TO USE
 model_path = "C://Users//RaahimSiddiqi//Desktop//Code//VSC//VOS//Model//models//yolov8s-seg-davis.pt"
