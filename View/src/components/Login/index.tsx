@@ -64,6 +64,9 @@ const Login = (props) => {
             console.log(auth);
             navigate("/");
         })
+        .catch((err) => {
+            console.log(err);
+        })
     }
 
     const SignIn = () =>
@@ -75,6 +78,13 @@ const Login = (props) => {
                 console.log(auth)
                 navigate("/");
             }
+        })
+        .catch((err) => {
+            console.log(err.code);
+            if (err.code == "auth/wrong-password")
+                formik.setErrors({"password": "Incorrect password"})
+            else if (err.code == "auth/user-not-found")
+                formik.setErrors({"email": "User not found"})
         })
     }
 
@@ -95,7 +105,7 @@ const Login = (props) => {
                     padding: '20px',
                     height: 'auto',
                     width: '340px',
-                    margin: '60px auto',
+                    margin: '40px auto',
                     borderRadius: 5,
                     marginTop: 5
                 }}
@@ -207,7 +217,6 @@ const Login = (props) => {
                         </Box>
             </Paper>
             <Box textAlign="center" m="auto" maxWidth={240}>
-                <Typography>Or</Typography>
                 <GoogleButton onClick={() => GoogleSignIn()}></GoogleButton>
             </Box>
         </Grid>
