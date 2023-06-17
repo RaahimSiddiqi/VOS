@@ -65,7 +65,21 @@ function Editor() {
         inferenceResults.current['results'],
         background.current,
         await getIdToken(auth.currentUser))
-        .then(async file => setactiveFile(file))
+        .then(async file => {
+          const types: any = { "png": "image/png", 
+                "jpg" : "image/jpg", 
+                "jpeg": "image/jpeg",
+                "bmp": "image/bmp",
+                "mp4": "video/mp4",
+                "avi": "video/x-msvideo",
+                "mkv": "video/x-matroska", 
+                "mov": "video/quicktime"
+          }
+          const fileType = types[file.name.split(".").slice(-1)[0]];
+          const updatedFile = new File([file], file.name, { type: fileType });
+          setactiveFile(updatedFile);
+          console.log("meow desu", file);
+        })
   );
 
   const inferenceParamsChangeHandler = (newValue: InferenceParamsInterface) => {
