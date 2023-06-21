@@ -1,0 +1,17 @@
+# Predict function returns a list of result objects, we'll call it results
+# results[0] is a ultralytics.yolo.engine.results.Results
+# results[0] has a length equal to the No. of objects detected in the 1st frame and it represents each object in the 1st frame.
+	# (alternatively results[0][0] is an ultralytics.yolo.engine.results.Results too but only represents the 1st object in the 1st frame)
+# results[0] has an attribute called keys which tells what attrs are available for this specific results object
+	# eg:object detection model's output wont have keypoints or masks or probs, it only has boxes
+# results[0].boxes returns a boxes object for the 1st frame, it also has a length equal to the # of objects in the frame
+
+# boxes/data: tensor(N, 6), where N is # of bounding boxes. The 6 values are (xmin, ymin, xmax, ymax, conf, cls)
+# cls: tensor(N,), the value is the predicted class index for each bounding box
+# conf: tensor(N,), the value is the confidence score for each bounding box
+# orig_shape: tensor(2,), the original shape of the image
+# shape: tensor(2,) the shape of the image after any resizing/padding
+# xywh: tensor(N, 4), bounding box coordinates in the format (center_x, center_y, width, height).
+# xywhn: tensor(N, 4), bounding box coordinates normalized by original image size in the format (center_x, center_y, width, height).
+# xyxy: tensor(N, 4), bounding box coordinates in the format (xmin, ymin, xmax, ymax).
+# xyxyn: tensor(N, 4),bounding box coordinates normalized by original image size in the format (xmin, ymin, xmax, ymax)
